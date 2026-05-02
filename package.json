@@ -12,11 +12,13 @@
     "build": "quasar build"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
     "@quasar/extras": "^1.16.4",
     "dayjs": "^1.11.13",
     "ky": "^1.14.3",
     "pinia": "^2.0.11",
     "quasar": "^2.16.0",
+    "vee-validate": "^4.15.1",
     "vue": "^3.4.18",
     "vue-router": "^4.0.12"
   },

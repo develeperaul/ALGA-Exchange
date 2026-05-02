@@ -1,5 +1,139 @@
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-// app global css in SCSS form
+@layer base {
+  :root {
+    --ui-brand-primary: #1ED74B;
+    --ui-brand-dark: #19B23E;
+    --ui-brand-hover: #19B23E;
+    --ui-brand-active: #19B23E;
+    --ui-brand-light: #D4F5DC;
+    --ui-brand-soft: #D4F5DC;
+    --ui-brand-muted: #D4F5DC;
+    --ui-brand-disabled: #D4F5DC;
+
+    --ui-surface-page: #F8F8F8;
+    --ui-surface-app: #F8F8F8;
+    --ui-surface-card: #FFFFFF;
+    --ui-surface-white: #FFFFFF;
+    --ui-surface-muted: #F8F8F8;
+    --ui-surface-raised: #FFFFFF;
+    --ui-surface-overlay: rgb(20 22 20 / 48%);
+    --ui-surface-inverse: #262626;
+
+    --ui-text-primary: #262626;
+    --ui-text-heading: #111010;
+    --ui-text-secondary: #545454;
+    --ui-text-muted: #95939F;
+    --ui-text-icon: #95939F;
+    --ui-text-neutral: #737373;
+    --ui-text-disabled: #95939F;
+    --ui-text-inverse: #FFFFFF;
+    --ui-text-brand: #19B23E;
+    --ui-text-danger: #E5484D;
+
+    --ui-border-default: #95939F;
+    --ui-border-subtle: #95939F;
+    --ui-border-strong: #545454;
+    --ui-border-focus: #1ED74B;
+    --ui-border-error: #E5484D;
+
+    --ui-state-success: #1ED74B;
+    --ui-state-success-soft: #D4F5DC;
+    --ui-state-warning: #F2C94C;
+    --ui-state-warning-soft: #FFF8DA;
+    --ui-state-error: #E5484D;
+    --ui-state-error-soft: #FDECEC;
+    --ui-state-error-figma: #FF0000;
+    --ui-state-info: #2F80ED;
+    --ui-state-info-soft: #EAF3FF;
+
+    --ui-radius-xs: 4px;
+    --ui-radius-sm: 6px;
+    --ui-radius-md: 8px;
+    --ui-radius-control: 10px;
+    --ui-radius-card: 12px;
+    --ui-radius-sheet: 16px;
+    --ui-radius-button: 20px;
+    --ui-radius-pill: 999px;
+
+    --ui-shadow-control: 0 1px 2px rgb(24 29 24 / 8%);
+    --ui-shadow-card: 0 8px 24px rgb(24 29 24 / 8%);
+    --ui-shadow-sheet: 0 -12px 32px rgb(24 29 24 / 14%);
+    --ui-shadow-overlay: 0 16px 48px rgb(24 29 24 / 18%);
+
+    --ui-safe-area-top: env(safe-area-inset-top, 0px);
+    --ui-safe-area-right: env(safe-area-inset-right, 0px);
+    --ui-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --ui-safe-area-left: env(safe-area-inset-left, 0px);
+    --ui-footer-height: 70px;
+
+    --ui-font-family: Inter, Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --ui-letter-spacing: 0;
+
+    --ui-font-h1: 20px;
+    --ui-line-h1: 26px;
+    --ui-font-h2: 18px;
+    --ui-line-h2: 23.4px;
+    --ui-font-h3: 16px;
+    --ui-line-h3: 20.8px;
+    --ui-font-t1: 16px;
+    --ui-line-t1: 20.8px;
+    --ui-font-t2: 14px;
+    --ui-line-t2: 18.2px;
+    --ui-font-t3: 12px;
+    --ui-line-t3: 15.6px;
+    --ui-font-button: 16px;
+    --ui-line-button: 20.8px;
+
+    color-scheme: light;
+  }
+
+  html {
+    min-height: 100%;
+    background: var(--ui-surface-page);
+    color: var(--ui-text-primary);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    min-height: 100%;
+    margin: 0;
+    background: var(--ui-surface-page);
+    color: var(--ui-text-primary);
+    font-family: var(--ui-font-family);
+    font-size: var(--ui-font-t1);
+    line-height: 1.3;
+    letter-spacing: var(--ui-letter-spacing);
+  }
+
+  #q-app {
+    min-height: 100vh;
+    background: var(--ui-surface-page);
+  }
+
+  button,
+  input,
+  optgroup,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  a {
+    color: var(--ui-text-brand);
+    text-decoration: none;
+  }
+
+  ::selection {
+    background: var(--ui-brand-soft);
+    color: var(--ui-text-primary);
+  }
+}
