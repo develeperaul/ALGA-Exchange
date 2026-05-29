@@ -11,128 +11,60 @@
       </button>
 
       <form class="auth-screen__form" @submit.prevent="submit">
-        <template v-if="step === 'email'">
-          <h1 class="auth-screen__title">
-            Войти
-          </h1>
-          <p class="auth-screen__text auth-screen__text--email">
-            На указанную почту мы отправим код подтверждения
-          </p>
+        <h1 class="auth-screen__title">
+          Авторизация
+        </h1>
 
-          <UiInput
-            v-model="email"
-            class="auth-screen__input auth-screen__input--email"
-            name="auth-email"
-            type="email"
-            inputmode="email"
-            autocomplete="email"
-            placeholder="Введите e-mail"
-          />
+        <UiInput
+          v-model="email"
+          class="auth-screen__input auth-screen__input--email"
+          name="login-email"
+          label="Введите почту"
+          type="email"
+          inputmode="email"
+          autocomplete="email"
+          placeholder="Email"
+          :disabled="authStore.isLoading"
+        />
 
-          <UiButton
-            class="auth-screen__button auth-screen__button--email"
-            size="large"
-            type="submit"
-            :disabled="!canSubmitEmail"
-          >
-            Продолжить
-          </UiButton>
+        <UiInput
+          v-model="password"
+          class="auth-screen__input auth-screen__input--password"
+          name="login-password"
+          label="Введите пароль"
+          :type="isPasswordVisible ? 'text' : 'password'"
+          autocomplete="current-password"
+          placeholder="Password"
+          :disabled="authStore.isLoading"
+        >
+          <template #suffix>
+            <button
+              class="auth-screen__visibility"
+              type="button"
+              aria-label="Показать пароль"
+              @click="isPasswordVisible = !isPasswordVisible"
+            >
+              <span class="auth-screen__visibility-icon" aria-hidden="true" />
+            </button>
+          </template>
+        </UiInput>
 
-          <div class="auth-screen__agreements">
-            <UiCheckbox v-model="termsAccepted">
-              Я принимаю условия <a href="#" @click.prevent>Публичной оферты</a>
-            </UiCheckbox>
-            <UiCheckbox v-model="policyAccepted">
-              Соглашаюсь с <a href="#" @click.prevent>Политикой обработки персональных данных</a>
-            </UiCheckbox>
-          </div>
-        </template>
+        <UiButton
+          class="auth-screen__button"
+          size="large"
+          type="submit"
+          :disabled="!canSubmit || authStore.isLoading"
+        >
+          {{ authStore.isLoading ? 'Вход...' : 'Войти' }}
+        </UiButton>
 
-        <template v-else-if="step === 'code'">
-          <h1 class="auth-screen__title">
-            Введите код
-          </h1>
-          <p class="auth-screen__text auth-screen__text--code">
-            На почту {{ displayEmail }} мы отправили код
-          </p>
-
-          <UiInput
-            v-model="code"
-            class="auth-screen__input auth-screen__input--code"
-            name="auth-code"
-            inputmode="numeric"
-            autocomplete="one-time-code"
-            placeholder="Введите код"
-          />
-
-          <UiButton
-            class="auth-screen__button auth-screen__button--code"
-            size="large"
-            type="submit"
-            :disabled="!canSubmitCode"
-          >
-            Продолжить
-          </UiButton>
-
-          <button class="auth-screen__resend" type="button">
-            Не пришел код?
-          </button>
-        </template>
-
-        <template v-else>
-          <h1 class="auth-screen__title auth-screen__title--password">
-            Придумайте пароль для быстрого входа
-          </h1>
-
-          <UiInput
-            v-model="password"
-            class="auth-screen__input auth-screen__input--password"
-            name="auth-password"
-            :type="isPasswordVisible ? 'text' : 'password'"
-            autocomplete="new-password"
-            placeholder="Введите пароль"
-          >
-            <template #suffix>
-              <button
-                class="auth-screen__visibility"
-                type="button"
-                aria-label="Показать пароль"
-                @click="isPasswordVisible = !isPasswordVisible"
-              >
-                <span class="auth-screen__visibility-icon" aria-hidden="true" />
-              </button>
-            </template>
-          </UiInput>
-
-          <UiInput
-            v-model="passwordRepeat"
-            class="auth-screen__input auth-screen__input--password-repeat"
-            name="auth-password-repeat"
-            :type="isPasswordRepeatVisible ? 'text' : 'password'"
-            autocomplete="new-password"
-            placeholder="Повторите пароль"
-          >
-            <template #suffix>
-              <button
-                class="auth-screen__visibility"
-                type="button"
-                aria-label="Показать повтор пароля"
-                @click="isPasswordRepeatVisible = !isPasswordRepeatVisible"
-              >
-                <span class="auth-screen__visibility-icon" aria-hidden="true" />
-              </button>
-            </template>
-          </UiInput>
-
-          <UiButton
-            class="auth-screen__button auth-screen__button--password"
-            size="large"
-            type="submit"
-            :disabled="!canSubmitPassword"
-          >
-            Продолжить
-          </UiButton>
-        </template>
+        <button
+          class="auth-screen__forgot"
+          type="button"
+          @click="goResetPassword"
+        >
+          Не помню пароль
+        </button>
       </form>
     </section>
   </main>
@@ -142,45 +74,22 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import UiButton from 'components/ui/UiButton.vue';
-import UiCheckbox from 'components/ui/UiCheckbox.vue';
 import UiInput from 'components/ui/UiInput.vue';
-
-type AuthStep = 'email' | 'code' | 'password';
+import { useAuthStore } from 'stores/auth-store';
 
 defineOptions({
   name: 'AuthPage',
 });
 
 const router = useRouter();
+const authStore = useAuthStore();
 
-const mockEmail = 'pochta123@mail.ru';
-
-const step = ref<AuthStep>('email');
-const email = ref('');
-const code = ref('');
+const email = ref(authStore.email);
 const password = ref('');
-const passwordRepeat = ref('');
-const termsAccepted = ref(true);
-const policyAccepted = ref(true);
 const isPasswordVisible = ref(false);
-const isPasswordRepeatVisible = ref(false);
-
-const displayEmail = computed(() => email.value.trim() || mockEmail);
-const canSubmitEmail = computed(() => Boolean(email.value.trim()) && termsAccepted.value && policyAccepted.value);
-const canSubmitCode = computed(() => Boolean(code.value.trim()));
-const canSubmitPassword = computed(() => Boolean(password.value) && password.value === passwordRepeat.value);
+const canSubmit = computed(() => Boolean(email.value.trim()) && Boolean(password.value));
 
 function goBack () {
-  if (step.value === 'password') {
-    step.value = 'code';
-    return;
-  }
-
-  if (step.value === 'code') {
-    step.value = 'email';
-    return;
-  }
-
   if (window.history.length > 1) {
     router.back();
     return;
@@ -189,19 +98,23 @@ function goBack () {
   void router.push('/');
 }
 
-function submit () {
-  if (step.value === 'email' && canSubmitEmail.value) {
-    step.value = 'code';
+function goResetPassword () {
+  void router.push('/reset-password');
+}
+
+async function submit () {
+  if (!canSubmit.value) {
     return;
   }
 
-  if (step.value === 'code' && canSubmitCode.value) {
-    step.value = 'password';
-    return;
-  }
+  try {
+    const normalizedEmail = email.value.trim();
 
-  if (step.value === 'password' && canSubmitPassword.value) {
+    await authStore.login(normalizedEmail, password.value);
+    email.value = normalizedEmail;
     void router.push('/');
+  } catch {
+    return;
   }
 }
 </script>
@@ -251,7 +164,6 @@ function submit () {
 .auth-screen__form {
   width: 100%;
   min-height: 100vh;
-  position: relative;
   padding:
     calc(72px + var(--ui-safe-area-top))
     calc(16px + var(--ui-safe-area-right))
@@ -260,37 +172,12 @@ function submit () {
 }
 
 .auth-screen__title {
-  width: 100%;
   margin: 0;
   color: var(--ui-text-primary);
   font-size: var(--ui-font-h1);
   line-height: var(--ui-line-h1);
   font-weight: 600;
   letter-spacing: -0.3px;
-  text-align: center;
-}
-
-.auth-screen__title--password {
-  max-width: 217px;
-  margin: 0 auto;
-}
-
-.auth-screen__text {
-  margin: 16px auto 0;
-  color: var(--ui-text-primary);
-  font-size: var(--ui-font-t1);
-  line-height: var(--ui-line-t1);
-  font-weight: 400;
-  letter-spacing: -0.3px;
-  text-align: center;
-}
-
-.auth-screen__text--email {
-  max-width: 281px;
-}
-
-.auth-screen__text--code {
-  max-width: 221px;
 }
 
 .auth-screen__input {
@@ -298,99 +185,67 @@ function submit () {
 }
 
 .auth-screen__input :deep(.ui-input__control) {
-  border-radius: 16px;
+  height: 50px;
 }
 
-.auth-screen__input--email,
-.auth-screen__input--code {
-  margin-top: 30px;
+.auth-screen__input--email {
+  margin-top: 54px;
 }
 
 .auth-screen__input--password {
-  margin-top: 24px;
-}
-
-.auth-screen__input--password-repeat {
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
 .auth-screen__button {
   width: 100%;
+  margin-top: 24px;
 }
 
-.auth-screen__button--email {
-  margin-top: 40px;
-}
-
-.auth-screen__button--code {
-  margin-top: 34px;
-}
-
-.auth-screen__button--password {
-  margin-top: 40px;
-}
-
-.auth-screen__agreements {
-  width: 100%;
-  margin-top: 84px;
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-}
-
-.auth-screen__resend {
-  width: 100%;
-  margin-top: 38px;
+.auth-screen__forgot {
+  margin-top: 20px;
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--ui-text-muted);
+  color: var(--ui-brand-primary);
   font-family: var(--ui-font-family);
-  font-size: var(--ui-font-t2);
-  line-height: var(--ui-line-t2);
-  font-weight: 400;
+  font-size: var(--ui-font-t1);
+  line-height: var(--ui-line-t1);
+  font-weight: 500;
+  letter-spacing: -0.3px;
   cursor: pointer;
 }
 
 .auth-screen__visibility {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   border: 0;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: var(--ui-text-muted);
   cursor: pointer;
 }
 
 .auth-screen__visibility-icon {
-  width: 21px;
+  width: 18px;
   height: 12px;
-  border-bottom: 2px solid currentColor;
-  border-radius: 0 0 14px 14px;
+  border: 1.7px solid currentColor;
+  border-radius: 999px / 75%;
   position: relative;
-}
-
-.auth-screen__visibility-icon::before,
-.auth-screen__visibility-icon::after {
-  content: '';
-  width: 2px;
-  height: 5px;
-  border-radius: 2px;
-  position: absolute;
-  bottom: -1px;
-  background: currentColor;
+  display: block;
+  color: var(--ui-text-muted);
 }
 
 .auth-screen__visibility-icon::before {
-  left: 2px;
-  transform: rotate(-45deg);
-}
-
-.auth-screen__visibility-icon::after {
-  right: 2px;
-  transform: rotate(45deg);
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  transform: translate(-50%, -50%);
 }
 </style>

@@ -1,5 +1,6 @@
 import { store } from 'quasar/wrappers'
 import { createPinia } from 'pinia'
+import { useAuthStore } from './auth-store'
 import { Router } from 'vue-router';
 
 /*
@@ -27,6 +28,10 @@ export default store((/* { ssrContext } */) => {
 
   // You can add Pinia plugins here
   // pinia.use(SomePiniaPlugin)
+
+  if (typeof window !== 'undefined') {
+    useAuthStore(pinia).hydrate()
+  }
 
   return pinia
 })

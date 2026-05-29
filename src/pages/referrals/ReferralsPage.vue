@@ -61,21 +61,26 @@
             <ReferralPromoCard title="Мои рефералы" :image="myReferralsImage" />
           </RouterLink>
 
-          <ReferralPromoCard variant="influencer" title="Специальные условия для инфлюенсеров">
-            <template #image>
-              <div class="referrals-auth-influencer" aria-hidden="true">
-                <img class="referrals-auth-influencer__img referrals-auth-influencer__img--1" :src="influencer1Image" alt="">
-                <img class="referrals-auth-influencer__img referrals-auth-influencer__img--2" :src="influencer2Image" alt="">
-              </div>
-            </template>
-          </ReferralPromoCard>
+          <button class="referrals-auth-promo-button" type="button" @click="showInfluencerSheet = true">
+            <ReferralPromoCard variant="influencer" title="Специальные условия для инфлюенсеров">
+              <template #image>
+                <div class="referrals-auth-influencer" aria-hidden="true">
+                  <img class="referrals-auth-influencer__img referrals-auth-influencer__img--1" :src="influencer1Image" alt="">
+                  <img class="referrals-auth-influencer__img referrals-auth-influencer__img--2" :src="influencer2Image" alt="">
+                </div>
+              </template>
+            </ReferralPromoCard>
+          </button>
         </div>
       </template>
     </main>
+
+    <InfluencerConditionsModal v-model="showInfluencerSheet" />
   </q-page>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import UiButton from 'components/ui/UiButton.vue';
 import { RouterLink } from 'vue-router';
 import UiStageField from 'components/ui/UiStageField.vue';
@@ -83,6 +88,7 @@ import ReferralBalanceCard from 'components/referrals/ReferralBalanceCard.vue';
 import ReferralIncomeCard from 'components/referrals/ReferralIncomeCard.vue';
 import ReferralLinkField from 'components/referrals/ReferralLinkField.vue';
 import ReferralPromoCard from 'components/referrals/ReferralPromoCard.vue';
+import InfluencerConditionsModal from 'components/modals/InfluencerConditionsModal.vue';
 import guestHeroImage from 'assets/referrals-hero.png';
 import authHeroImage from 'assets/referrals/hero.png';
 import influencer1Image from 'assets/referrals/influencer-1.png';
@@ -97,6 +103,7 @@ type ReferralsVariant = 'guest' | 'authorized';
 const variant: ReferralsVariant = 'authorized';
 
 const referralLink = 'ds.com/DS_Exchange123456';
+const showInfluencerSheet = ref(false);
 </script>
 
 <style scoped lang="scss">
@@ -230,7 +237,19 @@ const referralLink = 'ds.com/DS_Exchange123456';
 }
 
 .referrals-auth-promo-link {
+  display: block;
   color: inherit;
+}
+
+.referrals-auth-promo-button {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  display: block;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .referrals-auth-influencer {
@@ -257,4 +276,5 @@ const referralLink = 'ds.com/DS_Exchange123456';
   left: -13px;
   top: -11px;
 }
+
 </style>

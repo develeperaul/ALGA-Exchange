@@ -14,10 +14,11 @@
         <transition name="ui-bottom-sheet-slide">
           <section
             class="ui-bottom-sheet__panel"
+            :class="panelClass"
             :style="{ '--ui-bottom-sheet-max-height': maxHeight }"
             @click.stop
           >
-            <div class="ui-bottom-sheet__handle" aria-hidden="true" />
+            <div v-if="showHandle" class="ui-bottom-sheet__handle" aria-hidden="true" />
 
             <header v-if="$slots.header || title || closable" class="ui-bottom-sheet__header">
               <slot name="header">
@@ -37,7 +38,7 @@
               </button>
             </header>
 
-            <div class="ui-bottom-sheet__content">
+            <div class="ui-bottom-sheet__content" :class="contentClass">
               <slot />
             </div>
 
@@ -61,14 +62,20 @@ interface UiBottomSheetProps {
   maxHeight?: string;
   closable?: boolean;
   persistent?: boolean;
+  showHandle?: boolean;
+  panelClass?: string;
+  contentClass?: string;
 }
 
 const props = withDefaults(defineProps<UiBottomSheetProps>(), {
   title: '',
   ariaLabel: 'Bottom sheet',
-  maxHeight: '90vh',
+  maxHeight: '95vh',
   closable: true,
   persistent: false,
+  showHandle: true,
+  panelClass: '',
+  contentClass: '',
 });
 
 const emit = defineEmits<{
@@ -134,11 +141,14 @@ onBeforeUnmount(() => {
 .ui-bottom-sheet__panel {
   width: 100%;
   max-height: var(--ui-bottom-sheet-max-height);
+  box-sizing: border-box;
   padding: 8px 16px calc(16px + var(--ui-safe-area-bottom));
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background: var(--ui-surface-white);
   box-shadow: 0 -10px 30px rgb(0 0 0 / 16%);
 }
@@ -218,8 +228,10 @@ onBeforeUnmount(() => {
 }
 
 .ui-bottom-sheet__content {
+  min-height: 0;
   max-height: calc(var(--ui-bottom-sheet-max-height) - 80px);
   margin-top: 10px;
+  flex: 0 1 auto;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
 }

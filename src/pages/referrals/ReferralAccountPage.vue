@@ -17,7 +17,7 @@
 
       <section class="ref-account__balance" aria-label="Баланс">
         <p class="ref-account__amount">{{ balanceText }}</p>
-        <UiButton class="ref-account__withdraw" size="mini">
+        <UiButton class="ref-account__withdraw" size="mini" @click="goToWithdraw">
           Вывести
         </UiButton>
       </section>
@@ -45,6 +45,7 @@
           :title="operation.title"
           :date="operation.date"
           :amount="operation.amount"
+          @select="openOperation(operation)"
         />
       </section>
 
@@ -55,6 +56,11 @@
         </p>
       </section>
     </main>
+
+    <ReferralOperationDetailsModal
+      v-model="showOperationModal"
+      :operation="selectedOperationDetails"
+    />
   </q-page>
 </template>
 
@@ -64,6 +70,7 @@ import { useRoute, useRouter } from 'vue-router';
 import UiButton from 'components/ui/UiButton.vue';
 import UiTabs, { type UiTabOption } from 'components/ui/UiTabs.vue';
 import ReferralOperationRow from 'components/referrals/ReferralOperationRow.vue';
+import ReferralOperationDetailsModal, { type ReferralOperationDetails } from 'components/modals/ReferralOperationDetailsModal.vue';
 import walletImage from 'assets/wallet.png';
 
 defineOptions({
@@ -77,11 +84,14 @@ interface ReferralOperation {
   title: string;
   date: string;
   amount: string;
+  referralId: string;
 }
 
 const route = useRoute();
 const router = useRouter();
 const activeTab = ref<ReferralAccountTab>('withdraw');
+const showOperationModal = ref(false);
+const selectedOperation = ref<ReferralOperation | null>(null);
 
 const tabs: UiTabOption[] = [
   { label: 'Начисление', value: 'accrual' },
@@ -89,13 +99,23 @@ const tabs: UiTabOption[] = [
 ];
 
 const mockOperations: ReferralOperation[] = [
-  { id: '1', title: 'Начисление', date: '8 фев. 2026 г.', amount: '+0,88 USDT' },
-  { id: '2', title: 'Начисление', date: '31 янв. 2026 г.', amount: '+3 USDT' },
+  { id: '1', title: 'Начисление', date: '8 фев. 2026 г.', amount: '+0,88 USDT', referralId: '010205' },
+  { id: '2', title: 'Начисление', date: '31 янв. 2026 г.', amount: '+3 USDT', referralId: '851066' },
 ];
 
 const operations = computed(() => (route.query.empty === '1' ? [] : mockOperations));
 const hasOperations = computed(() => operations.value.length > 0);
 const balanceText = computed(() => (hasOperations.value ? '0,88 USDT' : '0 USDT'));
+const selectedOperationDetails = computed<ReferralOperationDetails | null>(() => {
+  if (!selectedOperation.value) return null;
+
+  return {
+    type: selectedOperation.value.title,
+    date: selectedOperation.value.date,
+    amount: selectedOperation.value.amount,
+    referralId: selectedOperation.value.referralId,
+  };
+});
 
 function goBack() {
   if (window.history.length > 1) {
@@ -108,6 +128,15 @@ function goBack() {
 
 function goToHistory() {
   void router.push('/referrals/account/history');
+}
+
+function goToWithdraw() {
+  void router.push('/referrals/account/withdraw');
+}
+
+function openOperation(operation: ReferralOperation) {
+  selectedOperation.value = operation;
+  showOperationModal.value = true;
 }
 </script>
 
