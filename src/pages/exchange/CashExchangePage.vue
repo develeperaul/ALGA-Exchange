@@ -172,6 +172,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import UiButton from 'components/ui/UiButton.vue';
 import UiCalendar from 'components/ui/UiCalendar.vue';
 import UiInput from 'components/ui/UiInput.vue';
@@ -186,6 +187,7 @@ defineOptions({
   name: 'CashExchangePage',
 });
 
+const router = useRouter();
 const activeTab = ref('sell');
 
 const tabOptions: UiTabOption[] = [
@@ -245,6 +247,7 @@ watch(calendarValue, (val) => {
 function onSubmit() {
   const form = activeTab.value === 'sell' ? sellForm : buyForm;
   console.log('Submit', activeTab.value, form);
+  void router.push('/exchange/cash/confirm');
 }
 </script>
 

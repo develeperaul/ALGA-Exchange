@@ -51,6 +51,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'profile/faq', component: () => import('pages/profile/ProfileFaqPage.vue') },
       { path: 'profile/data', component: () => import('pages/profile/ProfileDataPage.vue') },
       { path: 'exchange/cash', component: () => import('pages/exchange/CashExchangePage.vue') },
+      { path: 'exchange/cash/confirm', component: () => import('pages/exchange/CashExchangeConfirmPage.vue') },
+      { path: 'invoice', component: () => import('pages/exchange/InvoicePage.vue') },
       { path: 'ui-kit', component: () => import('pages/ui-kit/UiKitPage.vue') },
     ],
   },

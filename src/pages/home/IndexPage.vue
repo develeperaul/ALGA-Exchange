@@ -16,6 +16,7 @@
           class="home-screen__action-card"
           text="Оплата инвойса"
           icon="invoice"
+          to="/invoice"
         />
       </div>
       <HomeRateTable class="home-screen__rate-table" :items="rateItems" />
