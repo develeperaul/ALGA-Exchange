@@ -1,0 +1,15 @@
+<svg width="146" height="146" viewBox="0 0 146 146" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="checkGradient" x1="26" y1="22" x2="108" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#59F17E"/>
+      <stop offset="1" stop-color="#17B540"/>
+    </linearGradient>
+    <filter id="checkShadow" x="0" y="0" width="146" height="146" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#19B23E" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <g filter="url(#checkShadow)">
+    <path d="M39 77.5L61.5 100L108 42" stroke="url(#checkGradient)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M39 77.5L61.5 100L108 42" stroke="#0B8B2E" stroke-opacity="0.18" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

@@ -15,7 +15,7 @@
 
         <ProfileMenuRow
           class="profile-row profile-row--first"
-          icon="legal"
+          icon="portfel"
           label="Юридическая информация"
           :chevron="legalOpen ? 'up' : 'down'"
           bordered
@@ -37,7 +37,7 @@
         <ProfileMenuRow class="profile-row" icon="support" label="Техподдержка" />
       </template>
 
-      <template v-else-if="profileVariant === 'authorized'">
+      <template v-else>
         <header class="profile-user">
           <span class="profile-avatar" aria-hidden="true" />
           <p>{{ profileEmail }}</p>
@@ -49,7 +49,7 @@
             Пройдите верификацию
           </h1>
           <p>Для выгодных безналичных обменов</p>
-          <UiButton class="profile-verify-card__button" size="mini">
+          <UiButton class="profile-verify-card__button" size="mini" @click="goKyc">
             Верификация
           </UiButton>
         </section>
@@ -70,29 +70,8 @@
         <ProfileMenuRow class="profile-row" icon="support" label="Техподдержка" />
       </template>
 
-      <template v-else>
-        <button class="profile-verified-button" type="button" @click="goData">
-          <UiVerifiedField :name="profileName" :number="profilePhone" />
-        </button>
-
-        <ProfileMenuRow
-          class="profile-row profile-row--first"
-          icon="legal"
-          label="Юридическая информация"
-          :chevron="legalOpen ? 'up' : 'down'"
-          @click="legalOpen = !legalOpen"
-        />
-        <section v-if="legalOpen" class="profile-legal profile-legal--auth" aria-label="Юридическая информация">
-          <a href="#" @click.prevent>Публичная оферта</a>
-          <a href="#" @click.prevent>Политика конфиденциальности</a>
-          <a href="#" @click.prevent>AML</a>
-        </section>
-        <ProfileMenuRow class="profile-row" icon="faq" label="Часто задаваемые вопросы" chevron="right" @click="goFaq" />
-        <ProfileMenuRow class="profile-row" icon="support" label="Техподдержка" />
-      </template>
-
       <footer class="profile-meta" :class="{ 'profile-meta--auth': profileVariant === 'authorized' }">
-        <button v-if="profileVariant === 'authorized'" class="profile-logout" type="button">
+        <button v-if="profileVariant === 'authorized'" class="profile-logout" type="button" @click="logout">
           <span class="profile-logout__icon" aria-hidden="true" />
           Выйти из аккаунта
         </button>
@@ -103,25 +82,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import ProfileMenuRow from 'components/profile/ProfileMenuRow.vue';
 import UiButton from 'components/ui/UiButton.vue';
-import UiVerifiedField from 'components/ui/UiVerifiedField.vue';
+import { useAuthStore } from 'stores/auth-store';
 
-type ProfileVariant = 'guest' | 'authorized' | 'verified';
+type ProfileVariant = 'guest' | 'authorized';
 
 defineOptions({
   name: 'ProfilePage',
 });
 
-const profileVariant: ProfileVariant = 'guest';
-const profileEmail = 'pochta123@mail.ru';
-const profileName = 'Иванченко Николай Аркадьевич';
-const profilePhone = '+7 927 000 00 00';
-
 const router = useRouter();
-const legalOpen = ref(profileVariant === 'guest');
+const authStore = useAuthStore();
+const profileVariant = computed<ProfileVariant>(() => (authStore.isAuthenticated ? 'authorized' : 'guest'));
+const profileEmail = computed(() => authStore.profileEmail || '—');
+const legalOpen = ref(!authStore.isAuthenticated);
 
 function goAuth() {
   void router.push('/auth');
@@ -131,8 +108,12 @@ function goFaq() {
   void router.push('/profile/faq');
 }
 
-function goData() {
-  void router.push('/profile/data');
+function goKyc() {
+  void router.push('/kyc');
+}
+
+function logout() {
+  authStore.logout();
 }
 </script>
 

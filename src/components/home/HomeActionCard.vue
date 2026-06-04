@@ -7,13 +7,12 @@
     @click="handleClick"
   >
     <span class="home-action-card__icon" data-node-id="578:2750" aria-hidden="true">
-      <img
-        v-if="icon"
+      <UiIcon
         class="home-action-card__icon-asset"
-        :src="icon"
-        alt=""
-      >
-      <span v-else class="home-action-card__money" />
+        :name="iconName"
+        :size="18"
+        color="var(--ui-surface-white)"
+      />
     </span>
 
     <span class="home-action-card__label" data-node-id="578:2749">
@@ -28,12 +27,14 @@ import { RouterLink, type RouteLocationRaw } from 'vue-router';
 
 interface HomeActionCardProps {
   icon?: string;
+  iconVariant?: 'money' | 'document';
   text?: string;
   to?: RouteLocationRaw | null;
 }
 
 const props = withDefaults(defineProps<HomeActionCardProps>(), {
   icon: '',
+  iconVariant: 'money',
   text: 'Наличный обмен',
   to: null,
 });
@@ -59,6 +60,8 @@ const cardAttrs = computed(() => {
     type: 'button',
   };
 });
+
+const iconName = computed(() => props.icon || props.iconVariant);
 
 function handleClick(event: MouseEvent) {
   if (!props.to) {
@@ -97,40 +100,10 @@ function handleClick(event: MouseEvent) {
   transform: translateX(-50%);
 }
 
-.home-action-card__money {
-  width: 18px;
-  height: 18px;
-  position: relative;
-  display: block;
-}
-
 .home-action-card__icon-asset {
   width: 18px;
   height: 18px;
   display: block;
-  object-fit: contain;
-}
-
-.home-action-card__money::before {
-  content: "";
-  width: 16px;
-  height: 10px;
-  border: 2px solid var(--ui-surface-white);
-  border-radius: 3px;
-  position: absolute;
-  top: 4px;
-  left: 1px;
-}
-
-.home-action-card__money::after {
-  content: "";
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  position: absolute;
-  top: 7px;
-  left: 7px;
-  background: var(--ui-surface-white);
 }
 
 .home-action-card__label {

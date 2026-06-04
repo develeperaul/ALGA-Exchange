@@ -2,6 +2,21 @@ import { RouteRecordRaw } from 'vue-router';
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/kyc',
+    component: () => import('layouts/KycLayout.vue'),
+    children: [
+      { path: '', component: () => import('pages/kyc/KycFlowPage.vue') },
+      { path: 'phone', component: () => import('pages/kyc/KycFlowPage.vue') },
+      { path: 'phone/code', component: () => import('pages/kyc/KycFlowPage.vue') },
+      { path: 'phone/status', component: () => import('pages/kyc/KycFlowPage.vue') },
+      { path: 'documents', component: () => import('pages/kyc/KycFlowPage.vue') },
+      { path: 'selfie', component: () => import('pages/kyc/KycFlowPage.vue') },
+      { path: 'sending', component: () => import('pages/kyc/KycFlowPage.vue') },
+      { path: 'result', component: () => import('pages/kyc/KycFlowPage.vue') },
+      { path: 'blocked', component: () => import('pages/kyc/KycFlowPage.vue') },
+    ],
+  },
+  {
     path: '/auth',
     component: () => import('pages/auth/AuthPage.vue'),
   },
@@ -35,6 +50,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'profile', component: () => import('pages/profile/ProfilePage.vue') },
       { path: 'profile/faq', component: () => import('pages/profile/ProfileFaqPage.vue') },
       { path: 'profile/data', component: () => import('pages/profile/ProfileDataPage.vue') },
+      { path: 'exchange/cash', component: () => import('pages/exchange/CashExchangePage.vue') },
       { path: 'ui-kit', component: () => import('pages/ui-kit/UiKitPage.vue') },
     ],
   },

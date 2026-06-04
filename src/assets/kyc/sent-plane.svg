@@ -1,0 +1,16 @@
+<svg width="146" height="146" viewBox="0 0 146 146" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="planeGradient" x1="28" y1="24" x2="108" y2="106" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7AF98E"/>
+      <stop offset="1" stop-color="#19B23E"/>
+    </linearGradient>
+    <filter id="planeShadow" x="0" y="0" width="146" height="146" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#19B23E" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <g filter="url(#planeShadow)">
+    <path d="M24 72L120 26L83 120L65 82L24 72Z" fill="url(#planeGradient)"/>
+    <path d="M65 82L120 26" stroke="#C6FFD3" stroke-width="6" stroke-linecap="round"/>
+    <path d="M24 72L65 82" stroke="#0B8B2E" stroke-opacity="0.18" stroke-width="6" stroke-linecap="round"/>
+  </g>
+</svg>

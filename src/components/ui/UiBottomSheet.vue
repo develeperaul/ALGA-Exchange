@@ -1,5 +1,5 @@
 <template>
-  <teleport to="body">
+  <teleport :to="teleportTarget">
     <transition name="ui-bottom-sheet-fade">
       <div
         v-if="modelValue"
@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, watch } from 'vue';
+import { computed, onBeforeUnmount, watch } from 'vue';
 
 interface UiBottomSheetProps {
   modelValue: boolean;
@@ -85,6 +85,8 @@ const emit = defineEmits<{
 defineOptions({
   name: 'UiBottomSheet',
 });
+
+const teleportTarget = computed(() => document.querySelector('.app-device-screen') ? '.app-device-screen' : 'body');
 
 function close() {
   emit('update:modelValue', false);

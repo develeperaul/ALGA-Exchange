@@ -3,7 +3,13 @@
     <main class="wallet-rub-form" :aria-label="pageTitle">
       <header class="wallet-rub-form__header">
         <button class="wallet-rub-form__back" type="button" aria-label="Назад" @click="goBack">
-          <span aria-hidden="true" />
+          <UiIcon
+
+                name="back"
+                :size="24"
+                color="var(--ui-text-icon)"
+              />
+
         </button>
 
         <span v-if="isSbp" class="rub-bank-icon rub-bank-icon--sbp wallet-rub-form__title-icon" aria-hidden="true">
@@ -19,7 +25,14 @@
           <p class="wallet-rub-field__label">{{ isSbp ? 'Номер телефона' : currentBank.label }}</p>
           <div class="wallet-rub-control wallet-rub-control--locked">
             <span>{{ rubDepositStatic.phone }}</span>
-            <span class="wallet-rub-control__lock" aria-hidden="true" />
+
+             <UiIcon
+                class="wallet-rub-control__lock"
+                name="lock"
+                :size="16"
+                color="var(--ui-text-icon)"
+              />
+
           </div>
         </div>
 
@@ -68,13 +81,11 @@
           </button>
         </div>
 
-        <div class="wallet-rub-field">
-          <p class="wallet-rub-field__label">Промокод</p>
-          <div class="wallet-rub-control">
-            <span>{{ rubDepositStatic.promo }}</span>
-            <span class="wallet-rub-control__check" aria-hidden="true" />
-          </div>
-        </div>
+        <UiPromoField
+          :model-value="rubDepositStatic.promo"
+          readonly
+          show-check
+        />
       </section>
 
       <button class="wallet-rub-form__submit" type="button" @click="submit">
@@ -83,11 +94,22 @@
 
       <section class="wallet-rub-form__notes" aria-label="Информация">
         <p>
-          <span class="wallet-rub-note-icon wallet-rub-note-icon--info" aria-hidden="true">i</span>
+           <UiIcon
+
+            name="info"
+            :size="16"
+            color="#BAB9BD"
+          />
           Для пополнения вы будете перенаправлены в приложение банка или интернет-банк
         </p>
         <p>
-          <span class="wallet-rub-note-icon wallet-rub-note-icon--clock" aria-hidden="true" />
+
+          <UiIcon
+
+            name="time"
+            :size="16"
+            color="#BAB9BD"
+          />
           Время на пополнение 15 мин.
         </p>
       </section>
@@ -134,6 +156,7 @@
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import UiBottomSheet from 'components/ui/UiBottomSheet.vue';
+import UiPromoField from 'components/ui/UiPromoField.vue';
 import RubBankIcon from 'components/wallet/RubBankIcon.vue';
 import {
   findRubBank,
@@ -241,13 +264,7 @@ function submit() {
   cursor: pointer;
 }
 
-.wallet-rub-form__back span {
-  width: 10px;
-  height: 10px;
-  border-left: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: translateX(2px) rotate(45deg);
-}
+
 
 .wallet-rub-form__title-icon {
   width: 30px;
@@ -338,46 +355,11 @@ function submit() {
 }
 
 .wallet-rub-control__lock {
-  width: 14px;
-  height: 11px;
-  border-radius: 2px;
   justify-self: end;
   position: relative;
-  background: var(--ui-text-muted);
+
 }
 
-.wallet-rub-control__lock::before {
-  content: "";
-  width: 10px;
-  height: 8px;
-  border: 2px solid var(--ui-text-muted);
-  border-bottom: 0;
-  border-radius: 8px 8px 0 0;
-  position: absolute;
-  left: 2px;
-  top: -7px;
-}
-
-.wallet-rub-control__check {
-  width: 20px;
-  height: 20px;
-  border: 1.8px solid var(--ui-brand-primary);
-  border-radius: 999px;
-  justify-self: end;
-  position: relative;
-}
-
-.wallet-rub-control__check::before {
-  content: "";
-  width: 8px;
-  height: 5px;
-  border-left: 1.8px solid var(--ui-brand-primary);
-  border-bottom: 1.8px solid var(--ui-brand-primary);
-  position: absolute;
-  left: 5px;
-  top: 5px;
-  transform: rotate(-45deg);
-}
 
 .wallet-rub-control__bank {
   min-width: 0;

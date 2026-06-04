@@ -1,32 +1,47 @@
 import { defineStore } from 'pinia';
+import { HTTPError } from 'ky';
 import {
   checkRegisterCode as checkRegisterCodeRequest,
+  getProfile as getProfileRequest,
   login as loginRequest,
   sendRegisterCode as sendRegisterCodeRequest,
   setRegisterPassword as setRegisterPasswordRequest,
 } from '@/api/auth';
+import type { ProfileData } from '@/models';
+import { getStoredToken, setStoredToken } from '@/utils/auth-token';
 
-const AUTH_TOKEN_STORAGE_KEY = 'auth_token';
+function normalizeProfile(data?: ProfileData | null) {
+  const attributes = data?.attributes;
+  const kyc = data?.kyc ?? attributes?.kyc ?? null;
+  const firstName = attributes?.first_name || '';
+  const lastName = attributes?.last_name || '';
+  const middleName = attributes?.middle_name || '';
+  const fullName = [
+    lastName,
+    firstName,
+    middleName,
+  ].filter(Boolean).join(' ');
+  const name = data?.full_name || data?.name || attributes?.full_name || attributes?.name || fullName;
+  const email = data?.email || attributes?.email || '';
+  const phone = attributes?.phone || '';
+  const hasKyc = Boolean(data?.hasKyc);
+  const hasPhone = Boolean(data?.hasPhone);
+  const kycStatus = kyc?.status ?? null;
+  const kycBlocked = Boolean(kyc?.is_blocked);
+  const verified = hasKyc;
 
-function getStoredToken() {
-  if (typeof window === 'undefined') {
-    return '';
-  }
-
-  return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY) || '';
-}
-
-function setStoredToken(token: string) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  if (token) {
-    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
-    return;
-  }
-
-  localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  return {
+    ...data,
+    email,
+    phone,
+    kyc,
+    hasKyc,
+    hasPhone,
+    kycStatus,
+    kycBlocked,
+    name,
+    verified,
+  };
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -34,14 +49,53 @@ export const useAuthStore = defineStore('auth', {
     email: '',
     verificationToken: '',
     token: '',
+    profile: null as ProfileData | null,
     isLoading: false,
   }),
   getters: {
     isAuthenticated: (state) => Boolean(state.token),
+    profileEmail: (state) => state.profile?.email || state.email || '',
+    profilePhone: (state) => state.profile?.phone || '',
+    profileName: (state) => state.profile?.name || '',
+    hasKyc: (state) => Boolean(state.profile?.hasKyc),
+    hasPhone: (state) => Boolean(state.profile?.hasPhone),
+    kycStatus: (state) => state.profile?.kycStatus ?? null,
+    kycBlocked: (state) => Boolean(state.profile?.kycBlocked),
+    isVerified: (state) => Boolean(state.profile?.hasKyc),
   },
   actions: {
     hydrate() {
       this.token = getStoredToken();
+
+      if (this.token) {
+        void this.fetchProfile();
+      }
+    },
+    async fetchProfile() {
+      if (!this.token) {
+        this.profile = null;
+        return null;
+      }
+
+      try {
+        const response = await getProfileRequest();
+        const profile = normalizeProfile({
+          ...response.data,
+          hasKyc: response.meta?.has_kyc,
+          hasPhone: response.meta?.has_phone,
+        });
+
+        this.profile = profile;
+        this.email = profile.email || this.email;
+
+        return profile;
+      } catch (error) {
+        if (error instanceof HTTPError && error.response.status === 401) {
+          this.logout();
+        }
+
+        return null;
+      }
     },
     async login(email: string, password: string) {
       this.isLoading = true;
@@ -55,6 +109,7 @@ export const useAuthStore = defineStore('auth', {
         this.email = email;
         this.token = response.data.attributes.token;
         setStoredToken(this.token);
+        await this.fetchProfile();
       } finally {
         this.isLoading = false;
       }
@@ -96,6 +151,7 @@ export const useAuthStore = defineStore('auth', {
 
         this.token = token;
         setStoredToken(token);
+        await this.fetchProfile();
       } finally {
         this.isLoading = false;
       }
@@ -104,6 +160,7 @@ export const useAuthStore = defineStore('auth', {
       this.email = '';
       this.verificationToken = '';
       this.token = '';
+      this.profile = null;
       this.isLoading = false;
       setStoredToken('');
     },

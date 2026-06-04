@@ -1,16 +1,18 @@
 <template>
   <section class="ref-balance" aria-label="Реферальный счет">
-    <h2 class="ref-balance__title">
-      Реферальный счет
-    </h2>
-    <span class="ref-balance__chevron" aria-hidden="true" />
+    <div class="ref-balance__header">
+      <h2 class="ref-balance__title">
+        Реферальный счет
+      </h2>
+      <UiIcon name="arrow-right" size="14" color="var(--ui-text-icon)" class="ref-balance__chevron"/>
+    </div>
 
     <div class="ref-balance__row" aria-label="Баланс">
       <span class="ref-balance__amount">{{ amount }}</span>
       <span class="ref-balance__currency">{{ currency }}</span>
     </div>
 
-    <UiButton class="ref-balance__button" size="large">
+    <UiButton class="ref-balance__button" size="large" @click="router.push('/referrals/account')">
       Вывести
     </UiButton>
   </section>
@@ -18,6 +20,8 @@
 
 <script setup lang="ts">
 import UiButton from 'components/ui/UiButton.vue';
+import UiIcon from 'components/ui/UiIcon.vue';
+import { useRouter } from 'vue-router';
 
 interface ReferralBalanceCardProps {
   amount: string;
@@ -31,15 +35,20 @@ withDefaults(defineProps<ReferralBalanceCardProps>(), {
 defineOptions({
   name: 'ReferralBalanceCard',
 });
+
+const router = useRouter()
 </script>
 
 <style scoped lang="scss">
 .ref-balance {
   width: 100%;
   padding: 0;
-  border-radius: 16px;
-  position: relative;
-  background: var(--ui-surface-white);
+}
+
+.ref-balance__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .ref-balance__title {
@@ -53,24 +62,7 @@ defineOptions({
 }
 
 .ref-balance__chevron {
-  width: 24px;
-  height: 24px;
-  position: absolute;
-  top: 0;
-  right: 0;
-  color: var(--ui-text-muted);
-}
-
-.ref-balance__chevron::before {
-  content: "";
-  width: 7px;
-  height: 7px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: translate(-50%, -50%) rotate(-45deg);
+  flex-shrink: 0;
 }
 
 .ref-balance__row {
@@ -81,7 +73,7 @@ defineOptions({
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  background: var(--ui-surface-page);
+  background: #E8EBED;
 }
 
 .ref-balance__amount {
@@ -102,5 +94,11 @@ defineOptions({
 
 .ref-balance__button {
   margin-top: 24px;
+}
+
+.ref-balance__button :deep(.ui-button) {
+  --ui-button-bg: #1ED74B;
+  --ui-button-bg-hover: #19B23E;
+  --ui-button-bg-active: #19B23E;
 }
 </style>

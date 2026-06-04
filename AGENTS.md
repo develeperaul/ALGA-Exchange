@@ -1,5 +1,6 @@
 # AGENTS.md
 
+- Figma token: configured via `.env` file (not committed)
 - Use `npm`, not `yarn`, for this repo. `package-lock.json` is checked in and the repo scripts are npm-based.
 - Known commands: `npm install`, `npm run dev`, `npm run build`, `npm test`.
 - `npm test` is only a placeholder (`echo "No test specified" && exit 0`); there is no real test, lint, or typecheck script in `package.json`.

@@ -1,54 +1,78 @@
 <template>
   <q-page class="profile-faq-page">
     <main class="profile-faq-screen" aria-label="Часто задаваемые вопросы">
-      <header class="profile-faq-header">
-        <button class="profile-back" type="button" aria-label="Назад" @click="goBack">
-          <span class="profile-back__icon" aria-hidden="true" />
-        </button>
-        <h1>Часто задаваемые вопросы</h1>
-      </header>
+      <PageHeader title="Часто задаваемые вопросы" />
 
       <section class="profile-faq-list">
-        <button class="profile-faq-question profile-faq-question--active" type="button">
-          Какие документы нужны для KYC?
-          <span class="profile-faq-chevron profile-faq-chevron--up" aria-hidden="true" />
-        </button>
+        <div
+          v-for="(item, index) in faqItems"
+          :key="index"
+          class="profile-faq-item"
+        >
+          <button
+            class="profile-faq-question"
+            :class="{
+              'profile-faq-question--active': openIndex === index,
+              'profile-faq-question--large': item.isLarge,
+            }"
+            type="button"
+            @click="toggle(index)"
+          >
+            {{ item.question }}
+            <span
+              class="profile-faq-chevron"
+              :class="{ 'profile-faq-chevron--up': openIndex === index }"
+              aria-hidden="true"
+            />
+          </button>
 
-        <div class="profile-faq-answer">
-          Для KYC необходим только паспорт - главная страница с фото и разворот с регистрацией.
+          <div
+            v-if="openIndex === index"
+            class="profile-faq-answer"
+          >
+            {{ item.answer }}
+          </div>
         </div>
-
-        <button class="profile-faq-question" type="button">
-          Как купить USDT?
-          <span class="profile-faq-chevron" aria-hidden="true" />
-        </button>
-
-        <button class="profile-faq-question profile-faq-question--large" type="button">
-          В каких городах доступен наличный обмен?
-          <span class="profile-faq-chevron" aria-hidden="true" />
-        </button>
       </section>
     </main>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
+import { ref } from 'vue';
+import PageHeader from 'components/PageHeader.vue';
+
+interface FaqItem {
+  question: string;
+  answer: string;
+  isLarge?: boolean;
+}
+
+const faqItems: FaqItem[] = [
+  {
+    question: 'Какие документы нужны для KYC?',
+    answer: 'Для KYC необходим только паспорт - главная страница с фото и разворот с регистрацией.',
+  },
+  {
+    question: 'Как купить USDT?',
+    answer: 'Выберите раздел "Обмен" на главной странице, укажите сумму и следуйте инструкциям.',
+  },
+  {
+    question: 'В каких городах доступен наличный обмен?',
+    answer: 'Наличный обмен доступен в крупных городах России. Уточните актуальный список при оформлении заявки.',
+    isLarge: true,
+  },
+];
+
+const openIndex = ref<number | null>(null);
+
+function toggle(index: number) {
+  openIndex.value = openIndex.value === index ? null : index;
+}
 
 defineOptions({
   name: 'ProfileFaqPage',
 });
-
-const router = useRouter();
-
-function goBack() {
-  if (window.history.length > 1) {
-    router.back();
-    return;
-  }
-
-  void router.push('/profile');
-}
 </script>
 
 <style scoped lang="scss">
@@ -73,49 +97,14 @@ function goBack() {
   font-family: var(--ui-font-family);
 }
 
-.profile-faq-header {
-  min-height: 32px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.profile-faq-header h1 {
-  margin: 0;
-  color: var(--ui-text-primary);
-  font-size: var(--ui-font-h2);
-  line-height: var(--ui-line-h2);
-  font-weight: 600;
-  letter-spacing: -0.3px;
-}
-
-.profile-back {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  position: absolute;
-  left: 0;
-  top: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--ui-surface-white);
-  cursor: pointer;
-}
-
-.profile-back__icon {
-  width: 9px;
-  height: 9px;
-  border-bottom: 2px solid var(--ui-text-muted);
-  border-left: 2px solid var(--ui-text-muted);
-  transform: rotate(45deg) translate(2px, -1px);
-}
-
 .profile-faq-list {
   margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-faq-item {
   display: flex;
   flex-direction: column;
   gap: 10px;

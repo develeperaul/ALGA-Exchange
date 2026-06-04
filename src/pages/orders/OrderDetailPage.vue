@@ -128,6 +128,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { notifySuccess } from '@/utils/notify';
 
 defineOptions({
   name: 'OrderDetailPage',
@@ -192,6 +193,8 @@ async function copyRequestId() {
     document.execCommand('copy');
     document.body.removeChild(el);
   }
+
+  notifySuccess('Скопировано');
 
   copied.value = true;
   if (copiedTimer) {

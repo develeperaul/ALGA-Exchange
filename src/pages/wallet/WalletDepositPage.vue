@@ -67,6 +67,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { notifySuccess } from '@/utils/notify';
 import UiBottomSheet from 'components/ui/UiBottomSheet.vue';
 import qrImage from 'assets/wallet-deposit-qr.png';
 
@@ -91,6 +92,7 @@ function selectNetwork(network: (typeof networks)[number]) {
 
 function copyAddress() {
   void navigator.clipboard?.writeText(walletAddress);
+  notifySuccess('Адрес скопирован');
 }
 </script>
 

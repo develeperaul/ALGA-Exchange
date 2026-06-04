@@ -1,5 +1,6 @@
 import ky, { HTTPError } from 'ky';
 import { notifyError } from '@/utils/notify';
+import { getStoredToken } from '@/utils/auth-token';
 
 const DEFAULT_ERROR_MESSAGE = 'Что-то пошло не так';
 const ERROR_CODE_MESSAGES: Record<string, string> = {
@@ -52,10 +53,24 @@ function normalizeErrorMessage(payload?: ApiErrorPayload) {
 
 export const apiClient = ky.create({
   prefixUrl: import.meta.env.VITE_API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: 30000,
   hooks: {
+    beforeRequest: [
+      (request) => {
+        if (request.url.includes('/api/auth/')) {
+          request.headers.delete('Authorization');
+          return;
+        }
+
+        const token = getStoredToken();
+
+        if (token) {
+          request.headers.set('Authorization', `Bearer ${token}`);
+        } else {
+          request.headers.delete('Authorization');
+        }
+      },
+    ],
     afterResponse: [
       async (_request, _options, response) => {
         if (![400, 422, 500].includes(response.status)) {

@@ -11,35 +11,24 @@
       :aria-label="copyLabel"
       @click="copy"
     >
-      <svg
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M8 8V6.6C8 5.716 8.716 5 9.6 5H17.4C18.284 5 19 5.716 19 6.6V14.4C19 15.284 18.284 16 17.4 16H16"
-          stroke="currentColor"
-          stroke-width="1.7"
-          stroke-linecap="round"
-        />
-        <rect
-          x="5"
-          y="8"
-          width="11"
-          height="11"
-          rx="2.2"
-          stroke="currentColor"
-          stroke-width="1.7"
-        />
-      </svg>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_892_4010)">
+<path d="M15.5789 4H7.36842C6.61579 4 6 4.65455 6 5.45455V15.6364H7.36842V5.45455H15.5789V4ZM17.6316 6.90909H10.1053C9.35263 6.90909 8.73684 7.56364 8.73684 8.36364V18.5455C8.73684 19.3455 9.35263 20 10.1053 20H17.6316C18.3842 20 19 19.3455 19 18.5455V8.36364C19 7.56364 18.3842 6.90909 17.6316 6.90909ZM17.6316 18.5455H10.1053V8.36364H17.6316V18.5455Z" fill="#95939F"/>
+</g>
+<defs>
+<clipPath id="clip0_892_4010">
+<rect width="18" height="18" fill="white" transform="translate(3 3)"/>
+</clipPath>
+</defs>
+</svg>
+
     </button>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { notifySuccess } from '@/utils/notify';
 
 interface ReferralLinkFieldProps {
   value: string;
@@ -75,6 +64,8 @@ async function copy() {
     document.execCommand('copy');
     document.body.removeChild(el);
   }
+
+  notifySuccess('Скопировано');
 
   copied.value = true;
   if (copiedTimer) {

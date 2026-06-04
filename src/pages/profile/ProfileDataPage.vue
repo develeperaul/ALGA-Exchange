@@ -32,7 +32,7 @@
         </div>
       </section>
 
-      <button class="profile-data-logout" type="button">
+      <button class="profile-data-logout" type="button" @click="logout">
         <span class="profile-data-logout__icon" aria-hidden="true" />
         Выйти из аккаунта
       </button>
@@ -41,17 +41,20 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from 'stores/auth-store';
 
 defineOptions({
   name: 'ProfileDataPage',
 });
 
 const router = useRouter();
+const authStore = useAuthStore();
 
-const profileName = 'Иванченко Николай Аркадьевич';
-const profilePhone = '+7 (999) 999-99-99';
-const profileEmail = 'pochta123@mail.ru';
+const profileName = computed(() => authStore.profileName || '—');
+const profilePhone = computed(() => authStore.profilePhone || '—');
+const profileEmail = computed(() => authStore.profileEmail || '—');
 
 function goBack() {
   if (window.history.length > 1) {
@@ -59,6 +62,11 @@ function goBack() {
     return;
   }
 
+  void router.push('/profile');
+}
+
+function logout() {
+  authStore.logout();
   void router.push('/profile');
 }
 </script>

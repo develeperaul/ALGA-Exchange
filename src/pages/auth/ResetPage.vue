@@ -7,17 +7,20 @@
         aria-label="Назад"
         @click="goBack"
       >
-        <span class="auth-screen__back-icon" aria-hidden="true" />
+        <UiIcon name="back" size="24" color="var(--ui-text-icon)"/>
       </button>
 
       <form class="auth-screen__form" @submit.prevent="submit">
         <template v-if="step === 'email'">
-          <h1 class="auth-screen__title">
-            Сброс пароля
-          </h1>
-          <p class="auth-screen__text auth-screen__text--email">
-            На указанную почту мы отправим код для сброса пароля
-          </p>
+          <div class=" tw-text-center tw-mb-[30px]">
+
+            <h1 class="auth-screen__title">
+              Сброс пароля
+            </h1>
+            <p class="auth-screen__text auth-screen__text--email">
+              На указанную почту мы отправим код для сброса пароля
+            </p>
+          </div>
 
           <UiInput
             v-model="email"
@@ -50,12 +53,15 @@
         </template>
 
         <template v-else-if="step === 'code'">
-          <h1 class="auth-screen__title">
-            Введите код
-          </h1>
-          <p class="auth-screen__text auth-screen__text--code">
-            На почту {{ displayEmail }} мы отправили код для сброса пароля
-          </p>
+          <div class=" tw-mb-[30px]">
+
+            <h1 class="auth-screen__title">
+              Введите код
+            </h1>
+            <p class="auth-screen__text auth-screen__text--code">
+              На почту {{ displayEmail }} <br/> мы отправили код для сброса пароля
+            </p>
+          </div>
 
           <UiInput
             v-model="code"
@@ -82,51 +88,66 @@
         </template>
 
         <template v-else>
-          <h1 class="auth-screen__title auth-screen__title--password">
-            Придумайте новый пароль
-          </h1>
+          <div class=" tw-mb-[30px]">
 
-          <UiInput
-            v-model="password"
-            class="auth-screen__input auth-screen__input--password"
-            name="auth-password"
-            :type="isPasswordVisible ? 'text' : 'password'"
-            autocomplete="new-password"
-            placeholder="Введите пароль"
-            :disabled="isLoading"
-          >
-            <template #suffix>
-              <button
-                class="auth-screen__visibility"
-                type="button"
-                aria-label="Показать пароль"
-                @click="isPasswordVisible = !isPasswordVisible"
-              >
-                <span class="auth-screen__visibility-icon" aria-hidden="true" />
-              </button>
-            </template>
-          </UiInput>
+            <h1 class="auth-screen__title auth-screen__title--password">
+              Придумайте новый пароль
+            </h1>
+          </div>
+          <div class=" tw-grid tw-gap-6">
 
-          <UiInput
-            v-model="passwordRepeat"
-            class="auth-screen__input auth-screen__input--password-repeat"
-            name="auth-password-repeat"
-            :type="isPasswordRepeatVisible ? 'text' : 'password'"
-            autocomplete="new-password"
-            placeholder="Повторите пароль"
-            :disabled="isLoading"
-          >
-            <template #suffix>
-              <button
-                class="auth-screen__visibility"
-                type="button"
-                aria-label="Показать повтор пароля"
-                @click="isPasswordRepeatVisible = !isPasswordRepeatVisible"
-              >
-                <span class="auth-screen__visibility-icon" aria-hidden="true" />
-              </button>
-            </template>
-          </UiInput>
+            <UiInput
+              v-model="password"
+              class="auth-screen__input auth-screen__input--password"
+              name="auth-password"
+              :type="isPasswordVisible ? 'text' : 'password'"
+              autocomplete="new-password"
+              placeholder="Введите пароль"
+              :disabled="isLoading"
+            >
+              <template #suffix>
+                <button
+                  class="auth-screen__visibility"
+                  type="button"
+                  aria-label="Показать пароль"
+                  @click="isPasswordVisible = !isPasswordVisible"
+                >
+                  <svg v-if="!isPasswordVisible" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M3.83398 14.0877L2.21923 15.7047C1.78048 16.1442 1.78048 16.8567 2.21998 17.2955C2.65948 17.7342 3.37198 17.7342 3.81073 17.2947L5.81023 15.2937C7.23373 16.031 8.95273 16.6482 10.89 16.8245V19.4997C10.89 20.1207 11.394 20.6247 12.015 20.6247C12.636 20.6247 13.14 20.1207 13.14 19.4997V16.8215C14.7502 16.6707 16.2082 16.217 17.4705 15.6432L19.8697 18.0447C20.3085 18.4842 21.021 18.4842 21.4605 18.0455C21.9 17.6067 21.9 16.8942 21.4612 16.4547L19.527 14.519C21.4695 13.2702 22.5952 11.9922 22.5952 11.9922C23.0047 11.5257 22.959 10.8147 22.4925 10.4045C22.026 9.99498 21.315 10.0407 20.9047 10.5072C20.9047 10.5072 17.2942 14.6247 12 14.6247C6.70573 14.6247 3.09523 10.5072 3.09523 10.5072C2.68498 10.0407 1.97398 9.99498 1.50748 10.4045C1.04098 10.8147 0.995227 11.5257 1.40473 11.9922C1.40473 11.9922 2.28598 12.9927 3.83398 14.0877Z" fill="#95939F"/>
+                  </svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M3.83398 14.0877L2.21923 15.7047C1.78048 16.1442 1.78048 16.8567 2.21998 17.2955C2.65948 17.7342 3.37198 17.7342 3.81073 17.2947L5.81023 15.2937C7.23373 16.031 8.95273 16.6482 10.89 16.8245V19.4997C10.89 20.1207 11.394 20.6247 12.015 20.6247C12.636 20.6247 13.14 20.1207 13.14 19.4997V16.8215C14.7502 16.6707 16.2082 16.217 17.4705 15.6432L19.8697 18.0447C20.3085 18.4842 21.021 18.4842 21.4605 18.0455C21.9 17.6067 21.9 16.8942 21.4612 16.4547L19.527 14.519C21.4695 13.2702 22.5952 11.9922 22.5952 11.9922C23.0047 11.5257 22.959 10.8147 22.4925 10.4045C22.026 9.99498 21.315 10.0407 20.9047 10.5072C20.9047 10.5072 17.2942 14.6247 12 14.6247C6.70573 14.6247 3.09523 10.5072 3.09523 10.5072C2.68498 10.0407 1.97398 9.99498 1.50748 10.4045C1.04098 10.8147 0.995227 11.5257 1.40473 11.9922C1.40473 11.9922 2.28598 12.9927 3.83398 14.0877Z" fill="red"/>
+                  </svg>
+                </button>
+              </template>
+            </UiInput>
+
+            <UiInput
+              v-model="passwordRepeat"
+              class="auth-screen__input auth-screen__input--password-repeat"
+              name="auth-password-repeat"
+              :type="isPasswordRepeatVisible ? 'text' : 'password'"
+              autocomplete="new-password"
+              placeholder="Повторите пароль"
+              :disabled="isLoading"
+            >
+              <template #suffix>
+                <button
+                  class="auth-screen__visibility"
+                  type="button"
+                  aria-label="Показать повтор пароля"
+                  @click="isPasswordRepeatVisible = !isPasswordRepeatVisible"
+                >
+                  <svg v-if="!isPasswordRepeatVisible" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M3.83398 14.0877L2.21923 15.7047C1.78048 16.1442 1.78048 16.8567 2.21998 17.2955C2.65948 17.7342 3.37198 17.7342 3.81073 17.2947L5.81023 15.2937C7.23373 16.031 8.95273 16.6482 10.89 16.8245V19.4997C10.89 20.1207 11.394 20.6247 12.015 20.6247C12.636 20.6247 13.14 20.1207 13.14 19.4997V16.8215C14.7502 16.6707 16.2082 16.217 17.4705 15.6432L19.8697 18.0447C20.3085 18.4842 21.021 18.4842 21.4605 18.0455C21.9 17.6067 21.9 16.8942 21.4612 16.4547L19.527 14.519C21.4695 13.2702 22.5952 11.9922 22.5952 11.9922C23.0047 11.5257 22.959 10.8147 22.4925 10.4045C22.026 9.99498 21.315 10.0407 20.9047 10.5072C20.9047 10.5072 17.2942 14.6247 12 14.6247C6.70573 14.6247 3.09523 10.5072 3.09523 10.5072C2.68498 10.0407 1.97398 9.99498 1.50748 10.4045C1.04098 10.8147 0.995227 11.5257 1.40473 11.9922C1.40473 11.9922 2.28598 12.9927 3.83398 14.0877Z" fill="#95939F"/>
+                  </svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M3.83398 14.0877L2.21923 15.7047C1.78048 16.1442 1.78048 16.8567 2.21998 17.2955C2.65948 17.7342 3.37198 17.7342 3.81073 17.2947L5.81023 15.2937C7.23373 16.031 8.95273 16.6482 10.89 16.8245V19.4997C10.89 20.1207 11.394 20.6247 12.015 20.6247C12.636 20.6247 13.14 20.1207 13.14 19.4997V16.8215C14.7502 16.6707 16.2082 16.217 17.4705 15.6432L19.8697 18.0447C20.3085 18.4842 21.021 18.4842 21.4605 18.0455C21.9 17.6067 21.9 16.8942 21.4612 16.4547L19.527 14.519C21.4695 13.2702 22.5952 11.9922 22.5952 11.9922C23.0047 11.5257 22.959 10.8147 22.4925 10.4045C22.026 9.99498 21.315 10.0407 20.9047 10.5072C20.9047 10.5072 17.2942 14.6247 12 14.6247C6.70573 14.6247 3.09523 10.5072 3.09523 10.5072C2.68498 10.0407 1.97398 9.99498 1.50748 10.4045C1.04098 10.8147 0.995227 11.5257 1.40473 11.9922C1.40473 11.9922 2.28598 12.9927 3.83398 14.0877Z" fill="red"/>
+                  </svg>
+                </button>
+              </template>
+            </UiInput>
+          </div>
 
           <UiButton
             class="auth-screen__button auth-screen__button--password"
@@ -137,6 +158,8 @@
             {{ isLoading ? 'Сохранение...' : 'Продолжить' }}
           </UiButton>
         </template>
+
+
       </form>
     </section>
   </main>
@@ -181,7 +204,9 @@ const canSubmitEmail = computed(() => Boolean(email.value.trim()) && termsAccept
 const canSubmitCode = computed(() => Boolean(code.value.trim()));
 const canSubmitPassword = computed(() => Boolean(password.value) && password.value === passwordRepeat.value);
 
-function goBack () {
+function goBack() {
+  console.log('back');
+
   if (step.value === 'password') {
     step.value = 'code';
     return;
@@ -192,7 +217,7 @@ function goBack () {
     return;
   }
 
-  if (window.history.length > 1) {
+  if (router.options.history.state.back) {
     router.back();
     return;
   }
@@ -293,6 +318,7 @@ async function submit () {
 }
 
 .auth-screen__back-icon {
+  z-index: 1;
   width: 9px;
   height: 9px;
   border-bottom: 2px solid var(--ui-text-muted);

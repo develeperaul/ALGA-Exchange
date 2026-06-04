@@ -1,18 +1,26 @@
 <template>
-  <button
+  <router-link
     class="home-exchange-hero"
     type="button"
     data-node-id="578:2741"
-    @click="$emit('click')"
+    to="/wallet"
   >
     <span class="home-exchange-hero__title" data-node-id="578:2742">
       {{ title }}
     </span>
-
-    <span class="home-exchange-hero__icon" data-node-id="578:2743" aria-hidden="true">
-      <span class="home-exchange-hero__icon-card" />
+    <span class="home-exchange-hero__icon" data-node-id="578:2743" aria-hidden="true" style="    background: #C6FFD4;
+    stroke-width: 1px;
+    stroke: #FFF;
+    filter: drop-shadow(3px -1px 3px #78F196) drop-shadow(0 4px 12px #259841);">
+      <UiIcon
+          class="home-action-card__icon-asset"
+          name="card"
+          :size="45"
+          color="var(--ui-brand-primary)"
+        />
+      <!-- <span class="home-exchange-hero__icon-card" /> -->
     </span>
-  </button>
+  </router-link>
 </template>
 
 <script setup lang="ts">
@@ -82,8 +90,7 @@ defineOptions({
   right: 25px;
   display: grid;
   place-items: center;
-  background: var(--ui-surface-white);
-  box-shadow: 0 8px 18px rgb(0 0 0 / 18%);
+
 }
 
 .home-exchange-hero__icon-card {

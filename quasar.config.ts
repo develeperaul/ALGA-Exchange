@@ -5,6 +5,8 @@
 
 import { configure } from "quasar/wrappers";
 import { resolve } from "path";
+import { createSvgIconsPlugin } from "vite-plugin-svg-icons";
+
 export default configure((/* ctx */) => {
   return {
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
@@ -13,7 +15,7 @@ export default configure((/* ctx */) => {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-      boot: [],
+      boot: ["init"],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
     css: ["app.scss"],
@@ -58,9 +60,15 @@ export default configure((/* ctx */) => {
       // extendViteConf (viteConf) {},
       // viteVuePluginOptions: {},
 
-      // vitePlugins: [
-      //   [ 'package-name', { ..pluginOptions.. }, { server: true, client: true } ]
-      // ]
+      vitePlugins: [
+        [
+          createSvgIconsPlugin,
+          {
+            iconDirs: [resolve(__dirname, "src/assets/icons")],
+            symbolId: "icon-[name]",
+          },
+        ],
+      ],
       alias: [
         { find: "app", replacement: resolve(__dirname, ".") },
         { find: "@", replacement: resolve(__dirname, "./src") },

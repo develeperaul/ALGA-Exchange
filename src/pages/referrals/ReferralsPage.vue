@@ -1,7 +1,7 @@
 <template>
   <q-page class="referrals-page">
     <main class="referrals-screen" aria-label="Рефералы">
-      <template v-if="variant === 'guest'">
+      <div v-if="variant === 'guest'">
         <section class="referrals-hero" aria-label="Реферальная программа">
           <img class="referrals-hero__image" :src="guestHeroImage" alt="" aria-hidden="true">
 
@@ -16,7 +16,7 @@
           Войдите, чтобы начать пользоваться реферальной программой и получать бонусы
         </p>
 
-        <UiButton class="referrals-hero__button" size="large">
+        <UiButton class="referrals-hero__button" size="large" @click="goAuth">
           Войти
         </UiButton>
 
@@ -25,9 +25,9 @@
         </h2>
 
         <UiStageField class="referrals-stage" />
-      </template>
+      </div>
 
-      <template v-else>
+      <div v-else>
         <section class="referrals-auth-hero" aria-label="Реферальная программа">
           <img class="referrals-auth-hero__image" :src="authHeroImage" alt="" aria-hidden="true">
 
@@ -42,11 +42,10 @@
 
         <UiButton class="referrals-auth-share" size="large">
           Поделиться
+          <UiIcon name="link" size="24" color="var(--ui-surface-white)"/>
         </UiButton>
 
-        <RouterLink class="referrals-auth-balance-link" to="/referrals/account">
-          <ReferralBalanceCard class="referrals-auth-balance" amount="1300" currency="USDT" />
-        </RouterLink>
+        <ReferralBalanceCard class="referrals-auth-balance" amount="1300" currency="USDT" />
 
         <ReferralIncomeCard class="referrals-auth-income" value="+832 USDT" />
 
@@ -72,7 +71,7 @@
             </ReferralPromoCard>
           </button>
         </div>
-      </template>
+      </div>
     </main>
 
     <InfluencerConditionsModal v-model="showInfluencerSheet" />
@@ -80,9 +79,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import UiButton from 'components/ui/UiButton.vue';
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import UiStageField from 'components/ui/UiStageField.vue';
 import ReferralBalanceCard from 'components/referrals/ReferralBalanceCard.vue';
 import ReferralIncomeCard from 'components/referrals/ReferralIncomeCard.vue';
@@ -94,16 +93,23 @@ import authHeroImage from 'assets/referrals/hero.png';
 import influencer1Image from 'assets/referrals/influencer-1.png';
 import influencer2Image from 'assets/referrals/influencer-2.png';
 import myReferralsImage from 'assets/referrals/my-referrals.png';
+import { useAuthStore } from 'stores/auth-store';
+import UiIcon from 'src/components/ui/UiIcon.vue';
 
 defineOptions({
   name: 'ReferralsPage',
 });
 
 type ReferralsVariant = 'guest' | 'authorized';
-const variant: ReferralsVariant = 'authorized';
-
+const router = useRouter();
+const authStore = useAuthStore();
+const variant = computed<ReferralsVariant>(() => (authStore.isAuthenticated ? 'authorized' : 'guest'));
 const referralLink = 'ds.com/DS_Exchange123456';
 const showInfluencerSheet = ref(false);
+
+function goAuth() {
+   router.push('/auth');
+}
 </script>
 
 <style scoped lang="scss">
@@ -215,11 +221,6 @@ const showInfluencerSheet = ref(false);
 
 .referrals-auth-balance {
   margin-top: 40px;
-}
-
-.referrals-auth-balance-link {
-  display: block;
-  color: inherit;
 }
 
 .referrals-auth-income {

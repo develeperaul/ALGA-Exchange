@@ -17,3 +17,11 @@ export function notifyError(input?: string | NotifyInput) {
     timeout: 2500,
   });
 }
+
+export function notifySuccess(message: string) {
+  Notify.create({
+    message,
+    color: 'positive',
+    timeout: 1200,
+  });
+}

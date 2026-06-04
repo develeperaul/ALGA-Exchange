@@ -17,16 +17,18 @@
       >
         <span aria-hidden="true" />
       </button>
+      <div class=" tw-flex tw-items-center tw-justify-between tw-mt-4">
 
-      <h2 class="influencer-modal__title">
-        Специальные условия
-        <br>
-        для инфлюенсеров
-      </h2>
+        <h2 class="influencer-modal__title tw-mt-5">
+          Специальные условия
+          <br>
+          для инфлюенсеров
+        </h2>
 
-      <div class="influencer-modal__image" aria-hidden="true">
-        <img class="influencer-modal__img influencer-modal__img--1" :src="influencer1Image" alt="">
-        <img class="influencer-modal__img influencer-modal__img--2" :src="influencer2Image" alt="">
+        <div class="influencer-modal__image" aria-hidden="true">
+          <img class="influencer-modal__img influencer-modal__img--1" :src="influencer1Image" alt="">
+          <img class="influencer-modal__img influencer-modal__img--2" :src="influencer2Image" alt="">
+        </div>
       </div>
 
       <p class="influencer-modal__text">
@@ -38,7 +40,8 @@
       </p>
 
       <button class="influencer-modal__chat" type="button">
-        <q-icon name="support_agent" size="24px" />
+        <UiIcon name="support" size="24" color="var(--ui-brand-primary)" />
+
         <span>Написать в чат</span>
       </button>
     </section>
@@ -67,7 +70,7 @@ defineOptions({
 
 <style scoped lang="scss">
 .influencer-modal {
-  position: relative;
+
   color: var(--ui-text-primary);
 }
 
@@ -88,7 +91,7 @@ defineOptions({
   border: 0;
   position: absolute;
   top: 16px;
-  right: 0;
+  right: 16px;
   display: grid;
   place-items: center;
   background: transparent;
@@ -115,8 +118,8 @@ defineOptions({
 }
 
 .influencer-modal__title {
-  width: 205px;
-  margin: 75px 0 0;
+
+
   color: var(--ui-text-primary);
   font-size: var(--ui-font-h2);
   line-height: var(--ui-line-h2);
@@ -125,12 +128,10 @@ defineOptions({
 }
 
 .influencer-modal__image {
+  position: relative;
   width: 102px;
   height: 83px;
-  position: absolute;
-  top: 56px;
-  right: 19px;
-  overflow: hidden;
+
 }
 
 .influencer-modal__img {
@@ -141,15 +142,15 @@ defineOptions({
 .influencer-modal__img--1 {
   width: 102px;
   height: 102px;
-  left: 0;
-  top: -15px;
+  // left: 0;
+  // top: -15px;
 }
 
 .influencer-modal__img--2 {
   width: 106px;
   height: 106px;
   left: -13px;
-  top: -11px;
+  // top: -11px;
 }
 
 .influencer-modal__text {

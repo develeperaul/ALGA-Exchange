@@ -4,11 +4,12 @@
     :class="{ 'profile-menu-row--bordered': bordered }"
     type="button"
   >
-    <span
+    <!-- <span
       class="profile-menu-row__icon"
       :class="`profile-menu-row__icon--${icon}`"
       aria-hidden="true"
-    />
+    /> -->
+    <UiIcon :name="icon" size="24" color="var(--ui-brand-primary)" />
     <span class="profile-menu-row__label">
       <slot>{{ label }}</slot>
     </span>
@@ -22,7 +23,9 @@
 </template>
 
 <script setup lang="ts">
-export type ProfileMenuIcon = 'legal' | 'faq' | 'support';
+import UiIcon from '../ui/UiIcon.vue';
+
+export type ProfileMenuIcon = 'portfel' | 'faq' | 'support';
 export type ProfileMenuChevron = 'down' | 'up' | 'right';
 
 interface ProfileMenuRowProps {

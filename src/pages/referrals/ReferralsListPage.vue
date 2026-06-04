@@ -69,8 +69,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useQuasar } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
+import { notifySuccess } from '@/utils/notify';
 import UiButton from 'components/ui/UiButton.vue';
 import myReferralsImage from 'assets/referrals/my-referrals.png';
 
@@ -87,7 +87,6 @@ interface ReferralItem {
 
 const route = useRoute();
 const router = useRouter();
-const $q = useQuasar();
 
 const inviteLink = 'ds.com/DS_Exchange123456';
 
@@ -101,7 +100,7 @@ const hasReferrals = computed(() => referrals.value.length > 0);
 
 async function copyInviteLink() {
   await navigator.clipboard.writeText(inviteLink);
-  $q.notify({ message: 'Ссылка скопирована', color: 'positive', timeout: 1200 });
+  notifySuccess('Ссылка скопирована');
 }
 </script>
 

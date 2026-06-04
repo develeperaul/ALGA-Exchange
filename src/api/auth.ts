@@ -4,6 +4,7 @@ import type {
   CheckRegisterCodePayload,
   LoginPayload,
   LoginResponse,
+  ProfileResponse,
   RegisterCodeCheckResponse,
   RegisterCodeResponse,
   RegisterPasswordResponse,
@@ -20,6 +21,12 @@ export async function login(payload: LoginPayload) {
   return apiClient
     .post('api/auth/login', { json: payload })
     .json<LoginResponse>();
+}
+
+export async function getProfile() {
+  return apiClient
+    .get('api/profile/me')
+    .json<ProfileResponse>();
 }
 
 export async function sendRegisterCode(payload: SendRegisterCodePayload) {

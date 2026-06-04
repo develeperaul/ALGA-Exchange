@@ -58,6 +58,12 @@
           />
           <UiVerifiedField name="Иванченко Николай Аркадьевич" />
           <UiStageField />
+          <UiSelect
+            v-model="selectValue"
+            label="Время"
+            :options="selectOptions"
+            placeholder="Выберите время"
+          />
         </div>
       </section>
 
@@ -150,6 +156,16 @@
       </section>
 
       <section class="ui-kit__section">
+        <h2>Calendar</h2>
+        <div class="ui-kit__grid">
+          <UiCalendar v-model="calendarValue" />
+          <p class="ui-kit__calendar-value">
+            Selected: {{ calendarValue || 'none' }}
+          </p>
+        </div>
+      </section>
+
+      <section class="ui-kit__section">
         <h2>Legacy</h2>
         <div class="ui-kit__panel">
           <EssentialLink
@@ -201,8 +217,10 @@ import ReferralLinkField from 'components/referrals/ReferralLinkField.vue';
 import ReferralPromoCard from 'components/referrals/ReferralPromoCard.vue';
 import UiBottomSheet from 'components/ui/UiBottomSheet.vue';
 import UiButton from 'components/ui/UiButton.vue';
+import UiCalendar from 'components/ui/UiCalendar.vue';
 import UiCheckbox from 'components/ui/UiCheckbox.vue';
 import UiCodeInput from 'components/ui/UiCodeInput.vue';
+import UiSelect, { type UiSelectOption } from 'components/ui/UiSelect.vue';
 import UiFooter, { type UiFooterItemKey } from 'components/ui/UiFooter.vue';
 import UiInput from 'components/ui/UiInput.vue';
 import UiStageField from 'components/ui/UiStageField.vue';
@@ -225,10 +243,18 @@ const codeSix = ref('123');
 const codeFive = ref('987');
 const footerActive = ref<UiFooterItemKey>('home');
 const bottomSheetOpen = ref(false);
+const calendarValue = ref('');
 
 const tabOptions: UiTabOption[] = [
   { label: 'Вывод', value: 'withdraw' },
   { label: 'Пополнение', value: 'deposit' },
+];
+
+const selectValue = ref('');
+const selectOptions: UiSelectOption[] = [
+  { label: '10:00-14:00', value: '10:00-14:00' },
+  { label: '14:00-18:00', value: '14:00-18:00' },
+  { label: '18:00-22:00', value: '18:00-22:00' },
 ];
 
 const requiredRule = (value: string) => Boolean(value) || 'Обязательное поле';
@@ -302,6 +328,13 @@ const meta: Meta = {
 }
 
 .ui-kit__sheet-text {
+  margin: 0;
+  color: var(--ui-text-secondary);
+  font-size: var(--ui-font-t2);
+  line-height: var(--ui-line-t2);
+}
+
+.ui-kit__calendar-value {
   margin: 0;
   color: var(--ui-text-secondary);
   font-size: var(--ui-font-t2);
