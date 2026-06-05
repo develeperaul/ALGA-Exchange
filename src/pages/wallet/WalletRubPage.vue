@@ -1,11 +1,11 @@
 <template>
   <q-page class="wallet-rub-page">
-    <main class="wallet-rub" aria-label="Пополнить через RUB">
+    <main class="wallet-rub" :aria-label="pageTitle">
       <header class="wallet-rub__header">
         <button class="wallet-rub__back" type="button" aria-label="Назад" @click="goBack">
           <span aria-hidden="true" />
         </button>
-        <h1 class="wallet-rub__title">Пополнить через RUB</h1>
+        <h1 class="wallet-rub__title">{{ pageTitle }}</h1>
       </header>
 
       <section class="wallet-rub__list" aria-label="Способы пополнения RUB">
@@ -35,27 +35,44 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import RubBankIcon from 'components/wallet/RubBankIcon.vue';
 import { directRubBanks, rubMethodIcons, type RubBankId } from './rubDepositData';
+import { usePaymentsStore } from '@/stores/payments-store';
 
 defineOptions({
   name: 'WalletRubPage',
 });
 
+const route = useRoute();
 const router = useRouter();
+const paymentsStore = usePaymentsStore();
 const directBanks = computed(() => directRubBanks);
+const mode = computed<'deposit' | 'withdraw'>(() => (
+  route.query.mode === 'withdraw' ? 'withdraw' : 'deposit'
+));
+const pageTitle = computed(() => (
+  mode.value === 'deposit' ? 'Пополнить через RUB' : 'Вывести через RUB'
+));
 
 function goBack() {
   void router.push('/wallet');
 }
 
 function goToSbp() {
-  void router.push('/wallet/deposit/rub/sbp');
+  paymentsStore.setFlowMode(mode.value);
+  void router.push({
+    path: '/wallet/deposit/rub/sbp',
+    query: { mode: mode.value },
+  });
 }
 
 function goToBank(bankId: RubBankId) {
-  void router.push(`/wallet/deposit/rub/bank/${bankId}`);
+  paymentsStore.setFlowMode(mode.value);
+  void router.push({
+    path: `/wallet/deposit/rub/bank/${bankId}`,
+    query: { mode: mode.value },
+  });
 }
 </script>
 

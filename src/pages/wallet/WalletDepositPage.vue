@@ -1,21 +1,30 @@
 <template>
   <q-page class="wallet-deposit-page">
-    <main class="wallet-deposit" aria-label="Пополнить через USDT">
+    <main class="wallet-deposit" :aria-label="pageTitle">
       <header class="wallet-deposit__header">
         <button class="wallet-deposit__back" type="button" aria-label="Назад" @click="goBack">
           <span aria-hidden="true" />
         </button>
-        <h1 class="wallet-deposit__title">Пополнить через USDT</h1>
+        <h1 class="wallet-deposit__title">{{ pageTitle }}</h1>
       </header>
 
-      <section class="wallet-deposit__qr-wrap" aria-label="QR-код">
+      <section v-if="isDepositMode" class="wallet-deposit__qr-wrap" aria-label="QR-код">
         <img class="wallet-deposit__qr" :src="qrImage" alt="QR-код для пополнения USDT">
       </section>
 
       <div class="wallet-deposit-field">
         <span class="wallet-deposit-field__label">Адрес кошелька</span>
         <span class="wallet-deposit-field__control">
-          <span class="wallet-deposit-field__value">{{ walletAddress }}</span>
+          <input
+            v-if="!isDepositMode"
+            v-model="withdrawAddress"
+            class="wallet-deposit-field__input"
+            type="text"
+            autocomplete="off"
+            placeholder="Введите адрес кошелька"
+            aria-label="Адрес кошелька"
+          >
+          <span v-else class="wallet-deposit-field__value">{{ walletAddress }}</span>
           <button class="wallet-deposit-field__copy" type="button" aria-label="Скопировать адрес" @click.prevent="copyAddress">
             <span aria-hidden="true" />
           </button>
@@ -30,8 +39,24 @@
         </button>
       </div>
 
-      <button class="wallet-deposit__submit" type="button">
-        Я пополнил
+      <div v-if="!isDepositMode" class="wallet-deposit-field wallet-deposit-field--network">
+        <span class="wallet-deposit-field__label">Сумма</span>
+        <span class="wallet-deposit-field__control">
+          <input
+            v-model="amount"
+            class="wallet-deposit-field__input"
+            type="text"
+            inputmode="decimal"
+            autocomplete="off"
+            placeholder="Введите сумму"
+            aria-label="Сумма вывода"
+          >
+          <span class="wallet-deposit-field__value">USDT</span>
+        </span>
+      </div>
+
+      <button class="wallet-deposit__submit" type="button" :disabled="!canWithdraw" @click="submit">
+        {{ submitLabel }}
       </button>
     </main>
 
@@ -65,21 +90,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { notifySuccess } from '@/utils/notify';
+import { computed, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { notifyError, notifySuccess } from '@/utils/notify';
 import UiBottomSheet from 'components/ui/UiBottomSheet.vue';
 import qrImage from 'assets/wallet-deposit-qr.png';
+import { usePaymentsStore } from '@/stores/payments-store';
 
 defineOptions({
   name: 'WalletDepositPage',
 });
 
+const route = useRoute();
 const router = useRouter();
+const paymentsStore = usePaymentsStore();
 const walletAddress = 'siejdkaav1521sswol741gpsf51epaklvd';
 const networks = ['USDT TRC 20', 'USDT TON'] as const;
 const selectedNetwork = ref<(typeof networks)[number]>(networks[0]);
 const isNetworkSheetOpen = ref(false);
+const withdrawAddress = ref('');
+const amount = ref('100');
+const isDepositMode = computed(() => route.query.mode !== 'withdraw');
+const pageTitle = computed(() => (
+  isDepositMode.value ? 'Пополнить через USDT' : 'Вывести через USDT'
+));
+const submitLabel = computed(() => (
+  isDepositMode.value ? 'Я пополнил' : 'Вывести'
+));
+const canWithdraw = computed(() => {
+  if (isDepositMode.value) {
+    return true;
+  }
+
+  const normalizedAmount = Number.parseFloat(String(amount.value ?? '').trim() || '0');
+
+  return Number.isFinite(normalizedAmount)
+    && normalizedAmount > 0
+    && normalizedAmount <= paymentsStore.balanceUsdt;
+});
 
 function goBack() {
   void router.push('/wallet');
@@ -91,8 +139,30 @@ function selectNetwork(network: (typeof networks)[number]) {
 }
 
 function copyAddress() {
-  void navigator.clipboard?.writeText(walletAddress);
+  const value = isDepositMode.value ? walletAddress : withdrawAddress.value;
+  if (!value) return;
+  void navigator.clipboard?.writeText(value);
   notifySuccess('Адрес скопирован');
+}
+
+function submit() {
+  const normalizedAmount = String(amount.value ?? '').trim() || '100.00';
+
+  if (!isDepositMode.value && !canWithdraw.value) {
+    notifyError('Недостаточно средств');
+    return;
+  }
+
+  const payment = paymentsStore.createPayment({
+    amount: isDepositMode.value ? '100.00' : normalizedAmount,
+    type: isDepositMode.value ? 0 : 1,
+    method: 2,
+    currency: 'USDT',
+    deepLink: isDepositMode.value ? 'https://example.com/payments/deep-link' : null,
+    qrUrl: isDepositMode.value ? 'https://example.com/payments/qr-code' : null,
+  });
+
+  void router.push(`/orders/${payment.id}`);
 }
 </script>
 
@@ -220,6 +290,20 @@ function copyAddress() {
   line-height: var(--ui-line-t2);
   font-weight: 400;
   letter-spacing: 0;
+}
+
+.wallet-deposit-field__input {
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ui-text-primary);
+  font-family: var(--ui-font-family);
+  font-size: var(--ui-font-t2);
+  line-height: var(--ui-line-t2);
+  font-weight: 400;
 }
 
 .wallet-deposit-field__copy {

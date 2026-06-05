@@ -37,7 +37,7 @@
         </div>
 
         <div class="wallet-rub-field">
-          <p class="wallet-rub-field__label">Сумма пополнения</p>
+          <p class="wallet-rub-field__label">{{ amountLabel }}</p>
           <div class="wallet-rub-control wallet-rub-control--amount">
             <input
               v-model="amount"
@@ -47,7 +47,7 @@
               min="0"
               step="any"
               autocomplete="off"
-              aria-label="Сумма пополнения"
+              :aria-label="amountLabel"
             >
             <span class="wallet-rub-control__currency">{{ rubDepositStatic.amountCurrency }}</span>
           </div>
@@ -88,9 +88,7 @@
         />
       </section>
 
-      <button class="wallet-rub-form__submit" type="button" @click="submit">
-        Пополнить
-      </button>
+      <button class="wallet-rub-form__submit" type="button" :disabled="!canSubmit" @click="submit">{{ submitLabel }}</button>
 
       <section class="wallet-rub-form__notes" aria-label="Информация">
         <p>
@@ -155,9 +153,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { notifyError } from '@/utils/notify';
 import UiBottomSheet from 'components/ui/UiBottomSheet.vue';
 import UiPromoField from 'components/ui/UiPromoField.vue';
 import RubBankIcon from 'components/wallet/RubBankIcon.vue';
+import { usePaymentsStore } from '@/stores/payments-store';
 import {
   findRubBank,
   rubDepositStatic,
@@ -173,17 +173,34 @@ defineOptions({
 
 const route = useRoute();
 const router = useRouter();
+const paymentsStore = usePaymentsStore();
 const isBankSheetOpen = ref(false);
 const selectedBankId = ref<RubBankId | null>(null);
 const amount = ref(rubDepositStatic.amount);
 const bankSearch = ref('');
 
+const mode = computed<'deposit' | 'withdraw'>(() => (
+  route.query.mode === 'withdraw' ? 'withdraw' : 'deposit'
+));
 const isSbp = computed(() => route.path.endsWith('/sbp'));
 const routeBank = computed(() => findRubBank(route.params.bankId));
 const fallbackBank = computed(() => findRubBank('sber')!);
 const currentBank = computed(() => routeBank.value ?? fallbackBank.value);
 const selectedBank = computed(() => selectedBankId.value ? findRubBank(selectedBankId.value) : undefined);
-const pageTitle = computed(() => `Пополнить через ${isSbp.value ? 'СБП' : currentBank.value.label}`);
+const pageTitle = computed(() => `${mode.value === 'deposit' ? 'Пополнить' : 'Вывести'} через ${isSbp.value ? 'СБП' : currentBank.value.label}`);
+const amountLabel = computed(() => mode.value === 'deposit' ? 'Сумма пополнения' : 'Сумма вывода');
+const submitLabel = computed(() => mode.value === 'deposit' ? 'Пополнить' : 'Вывести');
+const canSubmit = computed(() => {
+  if (mode.value === 'deposit') {
+    return true;
+  }
+
+  const normalizedAmount = Number.parseFloat(String(amount.value ?? '').trim() || '0');
+
+  return Number.isFinite(normalizedAmount)
+    && normalizedAmount > 0
+    && normalizedAmount <= paymentsStore.balanceUsdt;
+});
 const filteredSbpBanks = computed(() => {
   const search = bankSearch.value.trim().toLowerCase();
 
@@ -195,7 +212,10 @@ const filteredSbpBanks = computed(() => {
 });
 
 function goBack() {
-  void router.push('/wallet/deposit/rub');
+  void router.push({
+    path: '/wallet/deposit/rub',
+    query: { mode: mode.value },
+  });
 }
 
 function selectBank(bankId: RubBankId) {
@@ -207,14 +227,26 @@ function submit() {
   const bankId = isSbp.value
     ? selectedBankId.value ?? sbpDefaultBankId
     : currentBank.value.id;
+  const normalizedAmount = String(amount.value ?? '').trim() || rubDepositStatic.amount;
+
+  if (mode.value === 'withdraw' && !canSubmit.value) {
+    notifyError('Недостаточно средств');
+    return;
+  }
+
+  const payment = paymentsStore.createPayment({
+    amount: normalizedAmount,
+    type: mode.value === 'deposit' ? 0 : 1,
+    method: isSbp.value ? 1 : 0,
+    currency: 'USDT',
+    bankId,
+  });
 
   void router.push({
     path: '/wallet/deposit/rub/result',
     query: {
-      method: isSbp.value ? 'sbp' : 'bank',
-      bank: bankId,
-      amount: amount.value.trim() || rubDepositStatic.amount,
-      status: 'processing',
+      transactionId: payment.id,
+      mode: mode.value,
     },
   });
 }

@@ -12,16 +12,12 @@
 
       <section class="wallet-actions" aria-label="Действия">
         <button
-          class="wallet-action"
-          :class="{ 'wallet-action--raised': isHistory }"
+          class="wallet-action wallet-action--raised"
           type="button"
           aria-label="Вывести"
+          @click="openActionSheet('withdraw')"
         >
-          <span
-            class="wallet-action__icon"
-            :class="isHistory ? 'wallet-action__icon--brand' : 'wallet-action__icon--muted'"
-            aria-hidden="true"
-          >
+          <span class="wallet-action__icon wallet-action__icon--brand" aria-hidden="true">
             <svg
               class="wallet-action__arrow-icon wallet-action__arrow-icon--up"
               width="18"
@@ -45,14 +41,14 @@
               />
             </svg>
           </span>
-          <span class="wallet-action__text" :class="{ 'wallet-action__text--muted': !isHistory }">Вывести</span>
+          <span class="wallet-action__text">Вывести</span>
         </button>
 
         <button
           class="wallet-action wallet-action--raised"
           type="button"
           aria-label="Пополнить"
-          @click="isDepositSheetOpen = true"
+          @click="openActionSheet('deposit')"
         >
           <span class="wallet-action__icon wallet-action__icon--brand" aria-hidden="true">
             <svg
@@ -86,12 +82,12 @@
         <h2 class="wallet-section-title">
           Последние операции
         </h2>
-        <button v-if="isHistory" class="wallet-history" type="button" @click="goToHistory">
+        <button v-if="hasOperations" class="wallet-history" type="button" @click="goToHistory">
           История
         </button>
       </header>
 
-      <section v-if="isHistory" class="wallet-ops" aria-label="Последние операции">
+      <section v-if="hasOperations" class="wallet-ops" aria-label="Последние операции">
         <WalletOperationRow
           v-for="op in operations"
           :key="op.id"
@@ -112,7 +108,7 @@
 
     <UiBottomSheet
       v-model="isDepositSheetOpen"
-      aria-label="Пополнить через"
+      :aria-label="sheetTitle"
       panel-class="wallet-deposit-sheet"
       content-class="wallet-deposit-sheet__content"
       :show-handle="false"
@@ -122,9 +118,7 @@
         <span aria-hidden="true" />
       </button>
 
-      <h2 class="wallet-deposit-sheet__title">
-        Пополнить через
-      </h2>
+      <h2 class="wallet-deposit-sheet__title">{{ sheetTitle }}</h2>
 
       <button
         v-for="method in depositMethods"
@@ -144,71 +138,57 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import walletImage from 'assets/wallet.png';
 import UiBottomSheet from 'components/ui/UiBottomSheet.vue';
-import WalletOperationRow, { type WalletOpDirection, type WalletOpTone } from 'components/wallet/WalletOperationRow.vue';
+import WalletOperationRow from 'components/wallet/WalletOperationRow.vue';
+import { usePaymentsStore } from '@/stores/payments-store';
 
 defineOptions({
   name: 'WalletPage',
 });
 
-type WalletVariant = 'empty' | 'history';
-// Demo toggle пока без API.
-// Переключай на 'history', чтобы увидеть вариант с операциями.
-const variant: WalletVariant = 'empty';
-const isHistory = variant === 'history';
-
 const router = useRouter();
+const paymentsStore = usePaymentsStore();
 const isDepositSheetOpen = ref(false);
+const actionMode = ref<'deposit' | 'withdraw'>('deposit');
 
-const balanceText = isHistory ? '100 USDT' : '0 USDT';
+const hasOperations = computed(() => paymentsStore.latestOperations.length > 0);
+const balanceText = computed(() => `${paymentsStore.balanceUsdt.toFixed(2)} USDT`);
+const sheetTitle = computed(() => (
+  actionMode.value === 'deposit' ? 'Пополнить через' : 'Вывести через'
+));
 const depositMethods = [
   { code: 'USDT', label: 'USDT', icon: 'T' },
   { code: 'RUB', label: 'RUB', icon: '₽' },
 ] as const;
 
-const operations: Array<{
-  id: number;
-  direction: WalletOpDirection;
-  title: string;
-  subtitle: string;
-  amount: string;
-  tone: WalletOpTone;
-  date: string;
-}> = [
-  {
-    id: 1,
-    direction: 'out',
-    title: 'Вывод средств',
-    subtitle: 'Т-банк',
-    amount: '-132 USDT',
-    tone: 'default',
-    date: '8 фев. 2026 г.',
-  },
-  {
-    id: 2,
-    direction: 'in',
-    title: 'Пополнение',
-    subtitle: 'СПБ',
-    amount: '+11 USDT',
-    tone: 'positive',
-    date: '19 янв. 2026 г.',
-  },
-];
+const operations = computed(() => paymentsStore.latestOperations);
 
 function goToHistory() {
   void router.push('/orders/history');
+}
+
+function openActionSheet(mode: 'deposit' | 'withdraw') {
+  actionMode.value = mode;
+  paymentsStore.setFlowMode(mode);
+  isDepositSheetOpen.value = true;
 }
 
 function selectDepositMethod(code: (typeof depositMethods)[number]['code']) {
   isDepositSheetOpen.value = false;
 
   if (code === 'USDT') {
-    void router.push('/wallet/deposit');
+    void router.push({
+      path: '/wallet/deposit',
+      query: { mode: actionMode.value },
+    });
   } else {
-    void router.push('/wallet/deposit/rub');
+    void router.push({
+      path: '/wallet/deposit/rub',
+      query: { mode: actionMode.value },
+    });
   }
 }
 </script>

@@ -13,7 +13,7 @@
       </section>
     </main>
 
-    <main v-else class="wallet-rub-result" aria-label="Пополнение">
+    <main v-else class="wallet-rub-result" :aria-label="title">
       <section class="wallet-rub-result__summary">
         <div class="wallet-rub-result__icons" aria-hidden="true">
           <RubBankIcon :bank="currentBank" class="wallet-rub-result__bank-icon" />
@@ -21,9 +21,9 @@
         </div>
 
         <div class="wallet-rub-result-card">
-          <p class="wallet-rub-result-card__title">Пополнение</p>
-          <p class="wallet-rub-result-card__amount">+{{ amount }} {{ rubDepositStatic.amountCurrency }}</p>
-          <p class="wallet-rub-result-card__date">{{ rubDepositStatic.date }}</p>
+          <p class="wallet-rub-result-card__title">{{ title }}</p>
+          <p class="wallet-rub-result-card__amount">{{ amount }}</p>
+          <p class="wallet-rub-result-card__date">{{ date }}</p>
         </div>
       </section>
 
@@ -34,19 +34,19 @@
         </div>
         <div class="wallet-rub-result-detail">
           <p>ID заявки</p>
-          <b>{{ rubDepositStatic.requestId }}</b>
+          <b>{{ transactionId }}</b>
         </div>
         <div class="wallet-rub-result-detail">
           <p>Статус</p>
-          <b>В обработке</b>
+          <b>{{ statusLabel }}</b>
         </div>
         <div class="wallet-rub-result-detail">
-          <p>Курс</p>
-          <b>{{ rubDepositStatic.resultRate }}</b>
+          <p>Метод</p>
+          <b>{{ methodLabel }}</b>
         </div>
         <div class="wallet-rub-result-detail">
           <p>ID операции</p>
-          <b>{{ rubDepositStatic.operationId }}</b>
+          <b>{{ transactionId }}</b>
         </div>
       </section>
 
@@ -62,9 +62,9 @@ import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import RubBankIcon from 'components/wallet/RubBankIcon.vue';
 import hourglassImage from 'assets/wallet/rub-hourglass.png';
+import { usePaymentsStore } from '@/stores/payments-store';
 import {
   findRubBank,
-  rubDepositStatic,
   sbpDefaultBankId,
 } from './rubDepositData';
 
@@ -74,15 +74,24 @@ defineOptions({
 
 const route = useRoute();
 const router = useRouter();
+const paymentsStore = usePaymentsStore();
 
 const isExpired = computed(() => route.query.status === 'expired');
-const isSbp = computed(() => route.query.method === 'sbp');
-const currentBank = computed(() => findRubBank(route.query.bank) ?? findRubBank(sbpDefaultBankId)!);
-const sourceTitle = computed(() => isSbp.value ? `${currentBank.value.label} (по СБП)` : currentBank.value.label);
-const amount = computed(() => {
-  const value = Array.isArray(route.query.amount) ? route.query.amount[0] : route.query.amount;
-  return value || rubDepositStatic.amount;
+const transactionId = computed(() => {
+  const value = Array.isArray(route.query.transactionId) ? route.query.transactionId[0] : route.query.transactionId;
+  return String(value || paymentsStore.lastCreatedPaymentId || '');
 });
+const detail = computed(() => paymentsStore.paymentDetailById(transactionId.value));
+const title = computed(() => detail.value?.title ?? 'Пополнение');
+const amount = computed(() => detail.value?.amount ?? '—');
+const date = computed(() => detail.value?.date ?? '—');
+const statusLabel = computed(() => detail.value?.statusLabel ?? 'В обработке');
+const methodLabel = computed(() => detail.value?.methodLabel ?? '—');
+const currentBank = computed(() => {
+  const bankName = detail.value?.bankName?.toLowerCase();
+  return findRubBank(bankName) ?? findRubBank(sbpDefaultBankId)!;
+});
+const sourceTitle = computed(() => detail.value?.bankName ?? currentBank.value.label);
 
 function goToWallet() {
   void router.push('/wallet');

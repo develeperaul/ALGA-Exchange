@@ -61,28 +61,18 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import OrderRequestCard, { OrderRequestStatus } from 'components/orders/OrderRequestCard.vue';
+import OrderRequestCard from 'components/orders/OrderRequestCard.vue';
 import UiButton from 'components/ui/UiButton.vue';
 import UiTabs, { UiTabOption } from 'components/ui/UiTabs.vue';
+import { usePaymentsStore } from '@/stores/payments-store';
 
 defineOptions({
   name: 'OrdersPage',
 });
 
 const router = useRouter();
+const paymentsStore = usePaymentsStore();
 const activeTab = ref('active');
-
-interface OrderRequestItem {
-  id: number;
-  status: OrderRequestStatus;
-  title: string;
-  subtitle: string;
-  date: string;
-  requestId: string;
-  amount: string;
-  amountTone?: 'default' | 'danger';
-  nodeId: string;
-}
 
 const tabs: UiTabOption[] = [
   {
@@ -95,47 +85,10 @@ const tabs: UiTabOption[] = [
   },
 ];
 
-const activeOrders: OrderRequestItem[] = [
-  {
-    id: 1,
-    status: 'processing',
-    title: 'Вывод средств',
-    subtitle: 'Т-банк',
-    date: '8 фев. 2026 г.',
-    requestId: '13522251',
-    amount: '-132 USDT',
-    nodeId: '610:12754',
-  },
-];
-
-const completedOrders: OrderRequestItem[] = [
-  {
-    id: 2,
-    status: 'completed',
-    title: 'Вывод средств',
-    subtitle: 'Сбер',
-    date: '28 марта 2026 г.',
-    requestId: '13522252',
-    amount: '-132 USDT',
-    nodeId: '561:6431',
-  },
-  {
-    id: 3,
-    status: 'cancelled',
-    title: 'Пополнение',
-    subtitle: 'USDT',
-    date: '13 апр. 2026 г.',
-    requestId: '13522253',
-    amount: '+312 USDT',
-    amountTone: 'danger',
-    nodeId: '561:6438',
-  },
-];
-
 const visibleOrders = computed(() => (
   activeTab.value === 'active'
-    ? activeOrders
-    : completedOrders
+    ? paymentsStore.ordersActive
+    : paymentsStore.ordersCompleted
 ));
 
 function goHome() {

@@ -1,6 +1,6 @@
 <template>
   <q-layout view="hHh lpR fFf" class="main-layout">
-    <q-page-container>
+    <q-page-container class="main-layout__page-container" >
       <router-view />
     </q-page-container>
 
@@ -78,5 +78,10 @@ function navigateFooter(item: UiFooterItemKey) {
 .main-layout__footer :deep(.ui-footer) {
   width: 100%;
   max-width: 100%;
+}
+
+.main-layout__page-container {
+  height: 100vh;
+  overflow: auto;
 }
 </style>

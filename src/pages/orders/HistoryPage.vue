@@ -58,7 +58,9 @@
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import UiTabs, { type UiTabOption } from 'components/ui/UiTabs.vue';
-import WalletOperationRow, { type WalletOpDirection, type WalletOpTone } from 'components/wallet/WalletOperationRow.vue';
+import WalletOperationRow from 'components/wallet/WalletOperationRow.vue';
+import { type HistoryOperationView } from '@/mocks/payments/adapters';
+import { usePaymentsStore } from '@/stores/payments-store';
 
 defineOptions({
   name: 'HistoryPage',
@@ -66,17 +68,8 @@ defineOptions({
 
 type HistoryTab = 'withdraw' | 'deposit';
 
-interface HistoryOperation {
-  id: string;
-  direction: WalletOpDirection;
-  title: string;
-  subtitle: string;
-  amount: string;
-  tone: WalletOpTone;
-  date: string;
-}
-
 const router = useRouter();
+const paymentsStore = usePaymentsStore();
 
 const activeTab = ref<HistoryTab>('withdraw');
 const tabs: UiTabOption[] = [
@@ -84,13 +77,13 @@ const tabs: UiTabOption[] = [
   { label: 'Пополнение', value: 'deposit' },
 ];
 
-const pageSize = 10;
-const operations = ref<HistoryOperation[]>([]);
-const nextCursor = ref<string | null>(null);
+const pageSize = 15;
+const operations = ref<HistoryOperationView[]>([]);
+const currentPage = ref(1);
+const lastPage = ref(1);
 const loadingMore = ref(false);
-const lastFetchedCount = ref(0);
 
-const showLoadMore = computed(() => Boolean(nextCursor.value) && lastFetchedCount.value >= pageSize);
+const showLoadMore = computed(() => currentPage.value < lastPage.value);
 
 function goBack() {
   if (window.history.length > 1) {
@@ -101,64 +94,23 @@ function goBack() {
   void router.push('/wallet');
 }
 
-function makeMockPage(tab: HistoryTab, cursor: string | null, limit: number) {
-  const startIndex = cursor === null ? 0 : cursor === 'page-2' ? 6 : 12;
-  const items: HistoryOperation[] = [];
-
-  for (let index = startIndex; index < Math.min(startIndex + limit, startIndex + 6); index += 1) {
-    const isWithdraw = tab === 'withdraw';
-    const isPositive = !isWithdraw;
-
-    items.push({
-      id: `${tab}-${index}`,
-      direction: isWithdraw ? 'out' : 'in',
-      title: isWithdraw ? 'Вывод средств' : 'Пополнение',
-      subtitle: isWithdraw ? 'Т-банк' : 'СПБ',
-      amount: isWithdraw ? '-132 USDT' : '+11 USDT',
-      tone: isPositive ? 'positive' : 'default',
-      date: isWithdraw ? `${8 - (index % 7)} фев. 2026 г.` : `${19 - (index % 7)} янв. 2026 г.`,
-    });
-  }
-
-  const next = cursor === null ? 'page-2' : null;
-
-  return { items, nextCursor: next };
-}
-
-async function fetchHistoryPage(tab: HistoryTab, cursor: string | null) {
-  const url = new URL('/api/history', window.location.origin);
-  url.searchParams.set('type', tab);
-  url.searchParams.set('limit', String(pageSize));
-  if (cursor) url.searchParams.set('cursor', cursor);
-
-  try {
-    const res = await fetch(url.toString(), { method: 'GET' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json() as { items: HistoryOperation[]; nextCursor: string | null };
-    return data;
-  } catch {
-    // Fallback пока backend не подключен.
-    return makeMockPage(tab, cursor, pageSize);
-  }
-}
-
 async function loadInitial() {
   operations.value = [];
-  nextCursor.value = null;
-  const data = await fetchHistoryPage(activeTab.value, null);
-  operations.value = data.items;
-  nextCursor.value = data.nextCursor;
-  lastFetchedCount.value = data.items.length;
+  currentPage.value = 1;
+  const items = paymentsStore.historyByType(activeTab.value === 'withdraw' ? 1 : 0);
+  operations.value = items.slice(0, pageSize);
+  lastPage.value = Math.max(1, Math.ceil(items.length / pageSize));
 }
 
 async function loadMore() {
-  if (!nextCursor.value || loadingMore.value) return;
+  if (!showLoadMore.value || loadingMore.value) return;
   loadingMore.value = true;
   try {
-    const data = await fetchHistoryPage(activeTab.value, nextCursor.value);
-    operations.value = operations.value.concat(data.items);
-    nextCursor.value = data.nextCursor;
-    lastFetchedCount.value = data.items.length;
+    const nextPage = currentPage.value + 1;
+    const items = paymentsStore.historyByType(activeTab.value === 'withdraw' ? 1 : 0);
+    operations.value = items.slice(0, nextPage * pageSize);
+    currentPage.value = nextPage;
+    lastPage.value = Math.max(1, Math.ceil(items.length / pageSize));
   } finally {
     loadingMore.value = false;
   }

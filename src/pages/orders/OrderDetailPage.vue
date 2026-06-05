@@ -75,19 +75,29 @@
         <div class="order-detail-row">
           <span class="order-detail-row__label">Куда</span>
           <span class="order-detail-row__value">
-            <span class="order-detail-bank__icon" aria-hidden="true">T</span>
-            <span class="order-detail-bank__text">{{ destination }}</span>
+            <span class="order-detail-bank__icon" aria-hidden="true">{{ bankIcon }}</span>
+            <span class="order-detail-bank__text">{{ bankName }}</span>
           </span>
         </div>
 
         <div class="order-detail-row">
-          <span class="order-detail-row__label">Сумма в рублях</span>
-          <span class="order-detail-row__value">{{ amountRub }}</span>
+          <span class="order-detail-row__label">Метод</span>
+          <span class="order-detail-row__value">{{ methodLabel }}</span>
         </div>
 
         <div class="order-detail-row">
-          <span class="order-detail-row__label">Курс</span>
-          <span class="order-detail-row__value">{{ rate }}</span>
+          <span class="order-detail-row__label">Валюта</span>
+          <span class="order-detail-row__value">{{ currencyLabel }}</span>
+        </div>
+
+        <div class="order-detail-row">
+          <span class="order-detail-row__label">Deep link</span>
+          <span class="order-detail-row__value">{{ deepLinkLabel }}</span>
+        </div>
+
+        <div class="order-detail-row">
+          <span class="order-detail-row__label">QR URL</span>
+          <span class="order-detail-row__value">{{ qrUrlLabel }}</span>
         </div>
       </section>
 
@@ -129,34 +139,33 @@
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { notifySuccess } from '@/utils/notify';
+import { usePaymentsStore } from '@/stores/payments-store';
 
 defineOptions({
   name: 'OrderDetailPage',
 });
 
-type OrderStatus = 'processing' | 'completed' | 'cancelled';
-
 const router = useRouter();
 const route = useRoute();
+const paymentsStore = usePaymentsStore();
 
-const status = ref<OrderStatus>('processing');
-const title = ref('Вывод средств');
 const requestId = computed(() => String(route.params.id ?? '13522251'));
-const date = ref('8 фев. 2026 г.');
-const amount = ref('-132 USDT');
-const destination = ref('Т-банк');
-const amountRub = ref('-10 600 RUB');
-const rate = ref('1 USDT = 79,84 RUB');
-
-const statusLabel = computed(() => {
-  const labels: Record<OrderStatus, string> = {
-    processing: 'В обработке',
-    completed: 'Исполнена',
-    cancelled: 'Отменена',
-  };
-
-  return labels[status.value];
-});
+const detail = computed(() => paymentsStore.paymentDetailById(requestId.value));
+const title = computed(() => detail.value?.title ?? 'Детали заявки');
+const date = computed(() => detail.value?.date ?? '—');
+const amount = computed(() => detail.value?.amount ?? '—');
+const bankName = computed(() => detail.value?.bankName ?? '—');
+const bankIcon = computed(() => detail.value?.bankIcon ?? '—');
+const methodLabel = computed(() => detail.value?.methodLabel ?? '—');
+const currencyLabel = computed(() => detail.value?.currencyLabel ?? '—');
+const deepLinkLabel = computed(() => (
+  detail.value?.deepLink && detail.value.deepLink !== '—' ? 'Есть' : 'Нет'
+));
+const qrUrlLabel = computed(() => (
+  detail.value?.qrUrl && detail.value.qrUrl !== '—' ? 'Есть' : 'Нет'
+));
+const status = computed(() => detail.value?.status ?? 'processing');
+const statusLabel = computed(() => detail.value?.statusLabel ?? 'В обработке');
 
 const copied = ref(false);
 let copiedTimer: number | undefined;

@@ -2,6 +2,10 @@ import { RouteRecordRaw } from 'vue-router';
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/start',
+    component: () => import('pages/start/StartPage.vue'),
+  },
+  {
     path: '/kyc',
     component: () => import('layouts/KycLayout.vue'),
     children: [

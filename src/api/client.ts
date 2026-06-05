@@ -15,21 +15,34 @@ type ApiErrorPayload = {
   }> | Record<string, string[] | string>;
 };
 
+function normalizeMessageValue(message?: string) {
+  if (!message) {
+    return DEFAULT_ERROR_MESSAGE;
+  }
+
+  if (message.startsWith('messages.')) {
+    const code = message.replace('messages.', '');
+    return ERROR_CODE_MESSAGES[message] || ERROR_CODE_MESSAGES[code] || message;
+  }
+
+  return ERROR_CODE_MESSAGES[message] || message;
+}
+
 function normalizeErrorMessage(payload?: ApiErrorPayload) {
   if (!payload) {
     return DEFAULT_ERROR_MESSAGE;
   }
 
   if (payload.message) {
-    return payload.message;
+    return normalizeMessageValue(payload.message);
   }
 
   if (payload.errors) {
     if (Array.isArray(payload.errors)) {
       const firstError = payload.errors.find((error) => error.message || error.code);
 
-      if (firstError?.message && !firstError.message.startsWith('messages.')) {
-        return firstError.message;
+      if (firstError?.message) {
+        return normalizeMessageValue(firstError.message);
       }
 
       if (firstError?.code) {
@@ -73,7 +86,7 @@ export const apiClient = ky.create({
     ],
     afterResponse: [
       async (_request, _options, response) => {
-        if (![400, 422, 500].includes(response.status)) {
+        if (response.status < 400) {
           return response;
         }
 

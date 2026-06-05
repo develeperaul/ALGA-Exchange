@@ -1,4 +1,5 @@
 import "virtual:svg-icons-register";
+import { notifyError } from '@/utils/notify';
 import UiBottomSheet from 'components/ui/UiBottomSheet.vue';
 import UiButton from 'components/ui/UiButton.vue';
 import UiCheckbox from 'components/ui/UiCheckbox.vue';
@@ -31,4 +32,20 @@ export default ({ app }) => {
   uiComponents.forEach((component) => {
     app.component(component.name, component);
   });
+
+  app.config.errorHandler = (error) => {
+    notifyError(error);
+  };
+
+  if (typeof window !== 'undefined' && !window.__algaErrorHandlersRegistered) {
+    window.__algaErrorHandlersRegistered = true;
+
+    window.addEventListener('error', (event) => {
+      notifyError(event.error || event.message);
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+      notifyError(event.reason);
+    });
+  }
 };
