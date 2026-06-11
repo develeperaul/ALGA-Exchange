@@ -1,12 +1,21 @@
 <template>
   <q-page class="home-page">
     <main class="home-screen" aria-label="ALGA Exchange home">
+      <KycStatusCard
+        v-if="kycCardStatus"
+        class="home-screen__kyc-status"
+        :status="kycCardStatus"
+        @click="showKycModal = true"
+      />
+
       <HomeGreetingHeader
         v-if="homeState === 'hasKyc'"
         class="home-screen__greeting"
         :name="greetingName"
       />
       <HomeExchangeHero />
+
+
       <div class="home-screen__actions">
         <HomeActionCard class="home-screen__action-card"
           text="Наличный обмен"
@@ -20,15 +29,21 @@
         />
       </div>
       <HomeRateTable class="home-screen__rate-table" :items="rateItems" />
-      <HomeKycPromoCard v-if="homeState === 'hasPhoneNoKyc'" class="home-screen__image-card" />
-      <HomeLimitsPromoCard v-if="homeState === 'hasKyc'" class="home-screen__image-card" />
+      <HomeKycPromoCard v-show="kycCardStatus === 'pending'" class="home-screen__image-card" />
+      <HomeLimitsPromoCard v-show="kycCardStatus === 'approved'"  class="home-screen__image-card" />
       <HomeReferralCard class="home-screen__referral-card" />
+
     </main>
+    <KycStatusModal
+      v-if="kycCardStatus"
+      v-model="showKycModal"
+      :status="kycCardStatus"
+    />
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import HomeActionCard from 'components/home/HomeActionCard.vue';
 import HomeExchangeHero from 'components/home/HomeExchangeHero.vue';
 import HomeGreetingHeader from 'components/home/HomeGreetingHeader.vue';
@@ -36,6 +51,8 @@ import HomeKycPromoCard from 'components/home/HomeKycPromoCard.vue';
 import HomeLimitsPromoCard from 'components/home/HomeLimitsPromoCard.vue';
 import HomeRateTable from 'components/home/HomeRateTable.vue';
 import HomeReferralCard from 'components/home/HomeReferralCard.vue';
+import KycStatusCard, { type KycCardStatus } from 'components/kyc/KycStatusCard.vue';
+import KycStatusModal from 'components/kyc/KycStatusModal.vue';
 import { useAuthStore } from 'stores/auth-store';
 
 defineOptions({
@@ -43,6 +60,7 @@ defineOptions({
 });
 
 const authStore = useAuthStore();
+const showKycModal = ref(false);
 
 type HomeState = 'guest' | 'hasPhoneNoKyc' | 'hasKyc';
 
@@ -81,6 +99,36 @@ const homeState = computed<HomeState>(() => {
   }
 
   return 'guest';
+});
+
+const kycCardStatus = computed<KycCardStatus | null>(() => {
+  if (!authStore.isAuthenticated) {
+    return null;
+  }
+
+  const status = authStore.kycStatus;
+
+  // 0 = pending (на проверке)
+  if (status === 0) {
+    return 'pending';
+  }
+
+  // 1 = verified (верифицирован)
+  if (status === 1 || authStore.hasKyc) {
+    return 'approved';
+  }
+
+  // 2 = rejected (отклонено)
+  if (status === 2) {
+    return 'rejected';
+  }
+
+  // 3 = blocked (заблокирован)
+  if (status === 3) {
+    return 'rejected';
+  }
+
+  return null;
 });
 
 const greetingName = computed(() => {
@@ -140,6 +188,10 @@ const greetingName = computed(() => {
 
 .home-screen__rate-table {
   margin-top: 24px;
+}
+
+.home-screen__kyc-status {
+  margin-bottom: 16px;
 }
 
 .home-screen__image-card,

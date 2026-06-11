@@ -36,15 +36,21 @@ onMounted(() => {
       await registerKyc({
         passport_type: kycStore.selectedCountry === 'FOREIGN' ? 'other' : 'ru',
         phone: formatPhoneForApi(kycStore.phone),
-        code: kycStore.code,
+        code: kycStore.code || undefined,
         address: kycStore.selectedCountry === 'FOREIGN'
           ? kycStore.documents.address.trim()
           : null,
       });
 
       await router.replace('/kyc/result');
-    } catch {
-      await router.replace('/kyc/selfie');
+    } catch (error) {
+      // Если код не введен - первый вызов, нужно запросить SMS
+      if (!kycStore.code) {
+        await router.replace('/kyc/phone/code');
+      } else {
+        // Если код введен но ошибка - показываем экран ошибки
+        await router.replace('/kyc/selfie');
+      }
     } finally {
       kycStore.isRegistering = false;
     }

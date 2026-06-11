@@ -1,8 +1,9 @@
-import type { ApiResponseWithMeta } from '@/models/common/api';
+import type { ApiResponse } from '@/models/common/api';
 
 export interface ProfileKyc {
   status: number;
-  is_blocked: boolean;
+  is_blocked: boolean | null;
+  identification_error: string | null;
 }
 
 export interface ProfileMeta {
@@ -21,20 +22,28 @@ export interface ProfileAttributes {
   middle_name?: string;
 }
 
-export interface ProfileData {
-  id?: string;
-  type?: 'profile' | 'customer' | string;
-  email?: string;
-  phone?: string | null;
-  name?: string;
-  full_name?: string;
-  kyc?: ProfileKyc | null;
-  hasKyc?: boolean;
-  hasPhone?: boolean;
-  kycStatus?: number | null;
-  kycBlocked?: boolean;
-  verified?: boolean;
-  attributes?: ProfileAttributes;
+// Raw API response structure
+export interface ProfileApiData {
+  id: string;
+  type: string;
+  attributes: ProfileAttributes;
+  meta: ProfileMeta;
 }
 
-export type ProfileResponse = ApiResponseWithMeta<ProfileData, ProfileMeta>;
+// Normalized profile used in the app
+export interface ProfileData {
+  id: string;
+  type: string;
+  attributes?: ProfileAttributes;
+  email: string;
+  phone: string;
+  name: string;
+  kyc: ProfileKyc | null;
+  hasKyc: boolean;
+  hasPhone: boolean;
+  kycStatus: number | null;
+  kycBlocked: boolean;
+  verified: boolean;
+}
+
+export type ProfileResponse = ApiResponse<ProfileApiData>;

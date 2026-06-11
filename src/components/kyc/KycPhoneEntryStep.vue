@@ -15,8 +15,8 @@
         maxlength="16"
       />
 
-      <UiButton class="kyc-phone-entry__submit" :disabled="!canContinue || kycStore.isPhoneCodeLoading" @click="goNext">
-        {{ kycStore.isPhoneCodeLoading ? 'Отправка...' : 'Продолжить' }}
+      <UiButton class="kyc-phone-entry__submit" :disabled="!canContinue" @click="goNext">
+        Продолжить
       </UiButton>
 
       <div class="kyc-phone-entry__hint">
@@ -43,7 +43,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { sendKycPhoneCode } from '@/api/kyc';
 import KycStepLayout from 'components/kyc/KycStepLayout.vue';
 import UiButton from 'components/ui/UiButton.vue';
 import UiInput from 'components/ui/UiInput.vue';
@@ -112,20 +111,13 @@ function formatPhoneForApi(value: string) {
   return digits ? `+${digits}` : '';
 }
 
-async function goNext() {
+function goNext() {
   if (!canContinue.value) {
     return;
   }
 
-  kycStore.isPhoneCodeLoading = true;
-
-  try {
-    kycStore.phone = formatPhone(kycStore.phone.trim());
-    // await sendKycPhoneCode({ phone: formatPhoneForApi(kycStore.phone) });
-    await router.push('/kyc/documents');
-  } finally {
-    kycStore.isPhoneCodeLoading = false;
-  }
+  kycStore.phone = formatPhone(kycStore.phone.trim());
+  void router.push('/kyc/documents');
 }
 </script>
 

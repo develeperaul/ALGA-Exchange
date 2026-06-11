@@ -16,11 +16,11 @@
           </div>
           <span class="kyc-status-modal__title">Верификация аккаунта</span>
         </div>
-        
-        <div class="kyc-status-modal__badge">
+
+        <div class="kyc-status-modal__badge" :style="{backgroundColor:iconColor}">
           <span class="kyc-status-modal__badge-text">{{ badgeText }}</span>
         </div>
-        
+
         <p class="kyc-status-modal__description">{{ description }}</p>
       </div>
 
@@ -100,7 +100,7 @@ defineOptions({
 }
 
 .kyc-status-modal {
-  padding: 24px;
+
   display: flex;
   flex-direction: column;
   gap: 24px;

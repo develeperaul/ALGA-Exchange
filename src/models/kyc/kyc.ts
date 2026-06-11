@@ -26,7 +26,7 @@ export interface RegisterKycPayload {
   address?: string | null;
   passport_type: KycPassportType;
   phone: string;
-  code: string;
+  code?: string;
 }
 
 export type UploadPassportResponse = ApiResponse<KycUploadData>;

@@ -7,12 +7,13 @@ import {
   sendRegisterCode as sendRegisterCodeRequest,
   setRegisterPassword as setRegisterPasswordRequest,
 } from '@/api/auth';
-import type { ProfileData } from '@/models';
+import type { ProfileApiData, ProfileData } from '@/models';
 import { getStoredToken, setStoredToken } from '@/utils/auth-token';
 
-function normalizeProfile(data?: ProfileData | null) {
-  const attributes = data?.attributes;
-  const kyc = data?.kyc ?? attributes?.kyc ?? null;
+function normalizeProfile(data: ProfileApiData): ProfileData {
+  const attributes = data.attributes;
+  const meta = data.meta;
+  const kyc = attributes?.kyc ?? null;
   const firstName = attributes?.first_name || '';
   const lastName = attributes?.last_name || '';
   const middleName = attributes?.middle_name || '';
@@ -21,17 +22,19 @@ function normalizeProfile(data?: ProfileData | null) {
     firstName,
     middleName,
   ].filter(Boolean).join(' ');
-  const name = data?.full_name || data?.name || attributes?.full_name || attributes?.name || fullName;
-  const email = data?.email || attributes?.email || '';
+  const name = attributes?.full_name || attributes?.name || fullName;
+  const email = attributes?.email || '';
   const phone = attributes?.phone || '';
-  const hasKyc = Boolean(data?.hasKyc);
-  const hasPhone = Boolean(data?.hasPhone);
+  const hasKyc = Boolean(meta?.has_kyc);
+  const hasPhone = Boolean(meta?.has_phone);
   const kycStatus = kyc?.status ?? null;
   const kycBlocked = Boolean(kyc?.is_blocked);
   const verified = hasKyc;
 
   return {
-    ...data,
+    id: data.id,
+    type: data.type,
+    attributes,
     email,
     phone,
     kyc,
@@ -79,11 +82,7 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         const response = await getProfileRequest();
-        const profile = normalizeProfile({
-          ...response.data,
-          hasKyc: response.meta?.has_kyc,
-          hasPhone: response.meta?.has_phone,
-        });
+        const profile = normalizeProfile(response.data);
 
         this.profile = profile;
         this.email = profile.email || this.email;
