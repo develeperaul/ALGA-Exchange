@@ -17,6 +17,7 @@ import {
 
 const PAYMENTS_PATH = '/mock-api/payments';
 const DEFAULT_PAGE_SIZE = 15;
+const DEFAULT_PAYMENT_OWNER = 'demo@alga.exchange';
 
 let paymentIdCounter = 1000;
 
@@ -31,7 +32,7 @@ type SeedPayment = {
   type: PaymentResource['attributes']['type'];
 };
 
-const seedRows: SeedPayment[] = [
+const demoSeedRows: SeedPayment[] = [
   { id: '1', status: 4, amount: '4332.13', createdAt: '2026-09-16T09:26:44Z', bankId: 'sber', method: 0, currency: 'RUB', type: 0 },
   { id: '2', status: 1, amount: '1800.00', createdAt: '2026-09-15T12:14:00Z', bankId: 'tbank', method: 0, currency: 'USDT', type: 1 },
   { id: '3', status: 0, amount: '22000.00', createdAt: '2026-09-14T08:10:00Z', bankId: 'vtb', method: 1, currency: 'RUB', type: 0 },
@@ -51,6 +52,21 @@ const seedRows: SeedPayment[] = [
   { id: '17', status: 4, amount: '730.75', createdAt: '2026-08-31T12:12:00Z', bankId: 'psb', method: 0, currency: 'USDT', type: 0 },
   { id: '18', status: 2, amount: '14200.00', createdAt: '2026-08-30T17:20:00Z', bankId: 'mkb', method: 0, currency: 'RUB', type: 1 },
 ];
+
+const approvedSeedRows: SeedPayment[] = [
+  { id: 'approved-1', status: 4, amount: '12500.00', createdAt: '2026-09-15T07:40:00Z', bankId: 'alfa', method: 0, currency: 'RUB', type: 0 },
+  { id: 'approved-2', status: 1, amount: '640.00', createdAt: '2026-09-12T11:05:00Z', bankId: 'sber', method: 2, currency: 'USDT', type: 1 },
+  { id: 'approved-3', status: 4, amount: '4800.00', createdAt: '2026-09-08T13:18:00Z', bankId: 'vtb', method: 1, currency: 'RUB', type: 1 },
+];
+
+const blockedSeedRows: SeedPayment[] = [
+  { id: 'blocked-1', status: 4, amount: '9800.00', createdAt: '2026-08-27T10:15:00Z', bankId: 'gazprombank', method: 0, currency: 'RUB', type: 0 },
+  { id: 'blocked-2', status: 5, amount: '350.00', createdAt: '2026-08-22T16:30:00Z', bankId: 'tbank', method: 2, currency: 'USDT', type: 1 },
+];
+
+function normalizeOwnerEmail(ownerEmail?: string | null) {
+  return String(ownerEmail ?? '').trim().toLowerCase();
+}
 
 function makeBankSnapshot(bankId: string): PaymentBank {
   const bank = getBankResourceById(bankId) ?? mockBanksResponse.data[0];
@@ -90,11 +106,35 @@ function makeSeedPayment(row: SeedPayment): PaymentResource {
   };
 }
 
-const seedPayments = seedRows.map(makeSeedPayment);
-let mockPayments = [...seedPayments];
+const seedPaymentsByOwner = new Map<string, PaymentResource[]>([
+  [DEFAULT_PAYMENT_OWNER, demoSeedRows.map(makeSeedPayment)],
+  ['approved@alga.exchange', approvedSeedRows.map(makeSeedPayment)],
+  ['blocked@alga.exchange', blockedSeedRows.map(makeSeedPayment)],
+  ['unverified@alga.exchange', []],
+  ['pending@alga.exchange', []],
+  ['rejected@alga.exchange', []],
+]);
 
-export function getMockPaymentsSnapshot() {
-  return [...mockPayments];
+const mockPaymentsByOwner = new Map<string, PaymentResource[]>(
+  [...seedPaymentsByOwner.entries()].map(([ownerEmail, payments]) => [ownerEmail, [...payments]]),
+);
+
+function getOwnerPayments(ownerEmail?: string | null) {
+  const owner = normalizeOwnerEmail(ownerEmail);
+
+  if (!owner) {
+    return [];
+  }
+
+  if (!mockPaymentsByOwner.has(owner)) {
+    mockPaymentsByOwner.set(owner, []);
+  }
+
+  return mockPaymentsByOwner.get(owner)!;
+}
+
+export function getMockPaymentsSnapshot(ownerEmail: string = DEFAULT_PAYMENT_OWNER) {
+  return [...getOwnerPayments(ownerEmail)];
 }
 
 function normalizeStatusFilter(status?: PaymentsFilter['status']) {
@@ -154,15 +194,17 @@ function buildLinks(meta: PaymentsMeta) {
 export function getMockPaymentsResponse({
   filter = {},
   page = {},
+  ownerEmail = DEFAULT_PAYMENT_OWNER,
 }: {
   filter?: PaymentsFilter;
   page?: PaymentsPage;
+  ownerEmail?: string;
 } = {}): PaymentsResponse {
   const statusFilter = normalizeStatusFilter(filter.status);
   const pageSize = page.size ?? DEFAULT_PAGE_SIZE;
   const pageNumber = page.number ?? 1;
 
-  let items = [...mockPayments];
+  let items = getMockPaymentsSnapshot(ownerEmail);
 
   if (statusFilter) {
     items = items.filter((item) => statusFilter.includes(item.attributes.status));
@@ -207,8 +249,8 @@ export function getMockPaymentsResponse({
   };
 }
 
-export function getMockPaymentById(transactionId: string) {
-  return mockPayments.find((item) => item.id === transactionId) ?? null;
+export function getMockPaymentById(transactionId: string, ownerEmail: string = DEFAULT_PAYMENT_OWNER) {
+  return getOwnerPayments(ownerEmail).find((item) => item.id === transactionId) ?? null;
 }
 
 export function getMockBanksResponse() {
@@ -220,11 +262,15 @@ function normalizeLocalReference(value?: string | null) {
   return /^https?:\/\//i.test(value) ? null : value;
 }
 
-export function createMockPaymentResource(input: CreateMockPaymentInput) {
+export function createMockPaymentResource(
+  input: CreateMockPaymentInput,
+  ownerEmail: string = DEFAULT_PAYMENT_OWNER,
+) {
+  const owner = normalizeOwnerEmail(ownerEmail) || DEFAULT_PAYMENT_OWNER;
   paymentIdCounter += 1;
 
   const payment: PaymentResource = {
-    id: String(paymentIdCounter),
+    id: `${owner.replace(/[^a-z0-9]+/g, '-')}-${paymentIdCounter}`,
     type: 'payments',
     attributes: {
       status: input.status ?? 0,
@@ -243,13 +289,26 @@ export function createMockPaymentResource(input: CreateMockPaymentInput) {
     },
   };
 
-  mockPayments = [payment, ...mockPayments];
+  const ownerPayments = getOwnerPayments(owner);
+  mockPaymentsByOwner.set(owner, [payment, ...ownerPayments]);
 
   return payment;
 }
 
-export function resetMockPayments() {
-  mockPayments = [...seedPayments];
+export function resetMockPayments(ownerEmail?: string) {
+  if (ownerEmail) {
+    const owner = normalizeOwnerEmail(ownerEmail);
+    const seed = seedPaymentsByOwner.get(owner) ?? [];
+    mockPaymentsByOwner.set(owner, [...seed]);
+    return;
+  }
+
+  mockPaymentsByOwner.clear();
+
+  seedPaymentsByOwner.forEach((payments, owner) => {
+    mockPaymentsByOwner.set(owner, [...payments]);
+  });
+
   paymentIdCounter = 1000;
 }
 
