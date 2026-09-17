@@ -1,6 +1,6 @@
 <template>
   <q-layout view="hHh lpR fFf" class="main-layout">
-    <q-page-container class="main-layout__page-container" >
+    <q-page-container class="main-layout__page-container">
       <router-view />
     </q-page-container>
 
@@ -82,6 +82,10 @@ function navigateFooter(item: UiFooterItemKey) {
 
 .main-layout__page-container {
   height: 100vh;
-  overflow: auto;
+  padding-bottom: calc(var(--ui-footer-height) + var(--ui-safe-area-bottom) + 24px) !important;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-padding-bottom: calc(var(--ui-footer-height) + var(--ui-safe-area-bottom) + 24px);
 }
 </style>
