@@ -9,9 +9,9 @@
       </header>
 
       <section class="profile-data-card" aria-label="Верификация">
-        <div class="profile-data-card__badge">
-          <span aria-hidden="true" />
-          Верифицирован
+        <div class="profile-data-card__badge" :class="profileBadgeClass">
+          <span v-if="authStore.isVerified && !authStore.kycBlocked" aria-hidden="true" />
+          {{ verificationLabel }}
         </div>
         <p>{{ profileName }}</p>
       </section>
@@ -55,6 +55,29 @@ const authStore = useAuthStore();
 const profileName = computed(() => authStore.profileName || '—');
 const profilePhone = computed(() => authStore.profilePhone || '—');
 const profileEmail = computed(() => authStore.profileEmail || '—');
+
+const verificationLabel = computed(() => {
+  if (authStore.kycBlocked) {
+    return 'Аккаунт заблокирован';
+  }
+
+  const labels = {
+    unverified: 'Не верифицирован',
+    pending: 'На проверке',
+    approved: 'Верифицирован',
+    rejected: 'Верификация отклонена',
+  } as const;
+
+  return labels[authStore.verificationStatus];
+});
+
+const profileBadgeClass = computed(() => {
+  if (authStore.kycBlocked) {
+    return 'profile-data-card__badge--blocked';
+  }
+
+  return `profile-data-card__badge--${authStore.verificationStatus}`;
+});
 
 function goBack() {
   if (window.history.length > 1) {
@@ -151,10 +174,29 @@ function logout() {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: var(--ui-brand-light);
-  color: var(--ui-text-brand);
   font-size: var(--ui-font-t3);
   line-height: var(--ui-line-t3);
+}
+
+.profile-data-card__badge--approved {
+  background: var(--ui-brand-light);
+  color: var(--ui-text-brand);
+}
+
+.profile-data-card__badge--pending {
+  background: #FFF7B2;
+  color: #6F6200;
+}
+
+.profile-data-card__badge--rejected,
+.profile-data-card__badge--blocked {
+  background: #FEE2E2;
+  color: #E5484D;
+}
+
+.profile-data-card__badge--unverified {
+  background: #ECEEF0;
+  color: var(--ui-text-secondary);
 }
 
 .profile-data-card__badge span,
