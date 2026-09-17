@@ -23,6 +23,28 @@ When no user is signed in, the application continues to show the existing guest 
 
 After sign-in, the selected mock account becomes the active profile and its own email, name, phone, KYC state and blocked state are used by the application. The active mock profile is also stored locally so a browser refresh does not switch the user back to the default demo account.
 
+## Access rules
+
+Financial operations are available only to a signed-in account with successfully approved KYC and no account block.
+
+| Account state | Orders/history | New financial operations |
+| --- | --- | --- |
+| Guest | no access; payment lists resolve to empty data | denied; redirect to sign-in |
+| `unverified` | may view own existing history | denied |
+| `pending` | may view own existing history | denied |
+| `rejected` | may view own existing history | denied |
+| `approved` | allowed | allowed |
+| `approved` + blocked | may view own existing history | denied; blocked screen |
+
+Protected personal routes require authentication. Financial routes additionally require `verificationStatus === 'approved'` and `kycBlocked === false`.
+
+The financial restriction is enforced twice:
+
+- router guards prevent direct navigation to protected operation pages;
+- `payments-store` refuses to create a payment unless the active account is authenticated, KYC-approved and not blocked.
+
+This means a guest or non-approved account cannot start an operation by navigating directly to a route or by bypassing the UI.
+
 ## KYC states
 
 Application UI and business logic use normalized KYC states instead of raw numeric API values:
