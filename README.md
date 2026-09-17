@@ -40,6 +40,81 @@ Unknown raw statuses are treated as `pending`, never as verified.
 
 After a new KYC submission the mock profile moves to `pending`, not directly to `approved`.
 
+## Demo KYC profiles
+
+For MVP demos, each test account should have its own fixed KYC state. This makes it possible to show every verification scenario simply by signing in with a different email, without developer switches in the UI.
+
+| Email | Verification state | Blocked | Expected UI |
+| --- | --- | --- | --- |
+| `unverified@alga.exchange` | `unverified` | no | Не верифицирован |
+| `pending@alga.exchange` | `pending` | no | Документы на проверке |
+| `approved@alga.exchange` | `approved` | no | Верифицирован |
+| `rejected@alga.exchange` | `rejected` | no | Верификация отклонена |
+| `blocked@alga.exchange` | `approved` | yes | Аккаунт заблокирован |
+
+Use the same demo password for all test profiles:
+
+```text
+Password: demo12345
+```
+
+The existing `demo@alga.exchange` account should remain available as the default successful scenario and map to `approved`.
+
+Important: `blocked` is not a fifth KYC status. A user may have successfully passed KYC (`approved`) and later have the account blocked independently.
+
+Suggested mock mapping:
+
+```ts
+const mockProfiles = {
+  'unverified@alga.exchange': {
+    verificationStatus: 'unverified',
+    kyc: null,
+    hasKyc: false,
+    isBlocked: false,
+  },
+  'pending@alga.exchange': {
+    verificationStatus: 'pending',
+    kyc: {
+      status: 0,
+      is_blocked: false,
+      identification_error: null,
+    },
+    hasKyc: true,
+    isBlocked: false,
+  },
+  'approved@alga.exchange': {
+    verificationStatus: 'approved',
+    kyc: {
+      status: 1,
+      is_blocked: false,
+      identification_error: null,
+    },
+    hasKyc: true,
+    isBlocked: false,
+  },
+  'rejected@alga.exchange': {
+    verificationStatus: 'rejected',
+    kyc: {
+      status: 2,
+      is_blocked: false,
+      identification_error: 'Не удалось подтвердить личность',
+    },
+    hasKyc: true,
+    isBlocked: false,
+  },
+  'blocked@alga.exchange': {
+    verificationStatus: 'approved',
+    kyc: {
+      status: 1,
+      is_blocked: true,
+      identification_error: null,
+    },
+    hasKyc: true,
+    isBlocked: true,
+  },
+};
+```
+
 ## Banks
 
 The RUB/SBP demo contains 10 banks with local logo assets:
