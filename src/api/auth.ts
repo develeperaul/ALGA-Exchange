@@ -1,66 +1,51 @@
-import { apiClient } from '@/api/client';
 import type {
   CheckResetPasswordCodePayload,
   CheckRegisterCodePayload,
   LoginPayload,
-  LoginResponse,
-  ProfileResponse,
-  RegisterCodeCheckResponse,
-  RegisterCodeResponse,
-  RegisterPasswordResponse,
-  ResetPasswordCodeCheckResponse,
-  ResetPasswordCodeResponse,
-  ResetPasswordPasswordResponse,
   SendResetPasswordCodePayload,
   SendRegisterCodePayload,
   SetResetPasswordPasswordPayload,
   SetRegisterPasswordPayload,
 } from '@/models';
+import {
+  mockCheckRegisterCode,
+  mockCheckResetPasswordCode,
+  mockGetProfile,
+  mockLogin,
+  mockSendRegisterCode,
+  mockSendResetPasswordCode,
+  mockSetRegisterPassword,
+  mockSetResetPasswordPassword,
+} from '@/mocks/auth';
 
-export async function login(payload: LoginPayload) {
-  return apiClient
-    .post('api/auth/login', { json: payload })
-    .json<LoginResponse>();
+export function login(payload: LoginPayload) {
+  return mockLogin(payload);
 }
 
-export async function getProfile() {
-  return apiClient
-    .get('api/profile/me')
-    .json<ProfileResponse>();
+export function getProfile() {
+  return mockGetProfile();
 }
 
-export async function sendRegisterCode(payload: SendRegisterCodePayload) {
-  return apiClient
-    .post('api/auth/register/codes', { json: payload })
-    .json<RegisterCodeResponse>();
+export function sendRegisterCode(payload: SendRegisterCodePayload) {
+  return mockSendRegisterCode(payload);
 }
 
-export async function checkRegisterCode(payload: CheckRegisterCodePayload) {
-  return apiClient
-    .post('api/auth/register/codes/check', { json: payload })
-    .json<RegisterCodeCheckResponse>();
+export function checkRegisterCode(payload: CheckRegisterCodePayload) {
+  return mockCheckRegisterCode(payload);
 }
 
-export async function setRegisterPassword(payload: SetRegisterPasswordPayload) {
-  return apiClient
-    .post('api/auth/register/passwords', { json: payload })
-    .json<RegisterPasswordResponse>();
+export function setRegisterPassword(payload: SetRegisterPasswordPayload) {
+  return mockSetRegisterPassword(payload);
 }
 
-export async function sendResetPasswordCode(payload: SendResetPasswordCodePayload) {
-  return apiClient
-    .post('api/auth/reset-passwords/codes', { json: payload })
-    .json<ResetPasswordCodeResponse>();
+export function sendResetPasswordCode(payload: SendResetPasswordCodePayload) {
+  return mockSendResetPasswordCode(payload);
 }
 
-export async function checkResetPasswordCode(payload: CheckResetPasswordCodePayload) {
-  return apiClient
-    .post('api/auth/reset-passwords/codes/check', { json: payload })
-    .json<ResetPasswordCodeCheckResponse>();
+export function checkResetPasswordCode(payload: CheckResetPasswordCodePayload) {
+  return mockCheckResetPasswordCode(payload);
 }
 
-export async function setResetPasswordPassword(payload: SetResetPasswordPasswordPayload) {
-  return apiClient
-    .post('api/auth/reset-passwords', { json: payload })
-    .json<ResetPasswordPasswordResponse>();
+export function setResetPasswordPassword(payload: SetResetPasswordPasswordPayload) {
+  return mockSetResetPasswordPassword(payload);
 }
