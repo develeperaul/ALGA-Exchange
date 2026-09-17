@@ -1,7 +1,11 @@
 import type { OrderRequestStatus } from '@/components/orders/OrderRequestCard.vue';
 import type { WalletOpDirection, WalletOpTone } from '@/components/wallet/WalletOperationRow.vue';
 import type { PaymentResource, PaymentStatusCode } from '@/models';
-import { getMethodLabel, getStatusLabel } from '@/mocks/payments/payments';
+import {
+  getBankResourceById,
+  getMethodLabel,
+  getStatusLabel,
+} from '@/mocks/payments/payments';
 
 export interface OrderListItemView {
   id: string;
@@ -34,6 +38,7 @@ export interface OrderDetailView {
   amount: string;
   bankName: string;
   bankIcon: string;
+  bankLogo: string | null;
   methodLabel: string;
   currencyLabel: string;
   deepLink: string;
@@ -61,10 +66,6 @@ function getTitle(type: PaymentResource['attributes']['type']) {
 function getSubtitle(payment: PaymentResource) {
   if (payment.attributes.method === 2) {
     return payment.attributes.bank.name.toUpperCase();
-  }
-
-  if (payment.attributes.method === 1) {
-    return 'СБП';
   }
 
   return payment.attributes.bank.name;
@@ -103,6 +104,8 @@ export function toHistoryOperationView(payment: PaymentResource): HistoryOperati
 }
 
 export function toOrderDetailView(payment: PaymentResource): OrderDetailView {
+  const bank = getBankResourceById(payment.attributes.bank.id);
+
   return {
     id: payment.id,
     title: getTitle(payment.attributes.type),
@@ -112,6 +115,7 @@ export function toOrderDetailView(payment: PaymentResource): OrderDetailView {
     amount: formatAmount(payment),
     bankName: getSubtitle(payment),
     bankIcon: payment.attributes.bank.name.charAt(0).toUpperCase(),
+    bankLogo: bank?.attributes.logotype ?? null,
     methodLabel: getMethodLabel(payment.attributes.method),
     currencyLabel: payment.attributes.currency,
     deepLink: payment.attributes.payload.deep_link ?? '—',
