@@ -15,12 +15,13 @@
       />
       <HomeExchangeHero />
 
-
       <div class="home-screen__actions">
-        <HomeActionCard class="home-screen__action-card"
+        <HomeActionCard
+          class="home-screen__action-card"
           text="Наличный обмен"
           icon="money"
-          to="/exchange/cash" />
+          to="/exchange/cash"
+        />
         <HomeActionCard
           class="home-screen__action-card"
           text="Оплата инвойса"
@@ -29,10 +30,15 @@
         />
       </div>
       <HomeRateTable class="home-screen__rate-table" :items="rateItems" />
-      <HomeKycPromoCard v-show="kycCardStatus === 'pending'" class="home-screen__image-card" />
-      <HomeLimitsPromoCard v-show="kycCardStatus === 'approved'"  class="home-screen__image-card" />
+      <HomeKycPromoCard
+        v-show="authStore.verificationStatus === 'unverified'"
+        class="home-screen__image-card"
+      />
+      <HomeLimitsPromoCard
+        v-show="authStore.verificationStatus === 'approved' && !authStore.kycBlocked"
+        class="home-screen__image-card"
+      />
       <HomeReferralCard class="home-screen__referral-card" />
-
     </main>
     <KycStatusModal
       v-if="kycCardStatus"
@@ -106,26 +112,10 @@ const kycCardStatus = computed<KycCardStatus | null>(() => {
     return null;
   }
 
-  const status = authStore.kycStatus;
+  const status = authStore.verificationStatus;
 
-  // 0 = pending (на проверке)
-  if (status === 0) {
-    return 'pending';
-  }
-
-  // 1 = verified (верифицирован)
-  if (status === 1 || authStore.hasKyc) {
-    return 'approved';
-  }
-
-  // 2 = rejected (отклонено)
-  if (status === 2) {
-    return 'rejected';
-  }
-
-  // 3 = blocked (заблокирован)
-  if (status === 3) {
-    return 'rejected';
+  if (status === 'pending' || status === 'approved' || status === 'rejected') {
+    return status;
   }
 
   return null;
