@@ -45,6 +45,20 @@ The financial restriction is enforced twice:
 
 This means a guest or non-approved account cannot start an operation by navigating directly to a route or by bypassing the UI.
 
+## Account-scoped orders and history
+
+Orders and payment history belong to the active mock account. They are not shared globally between signed-in users.
+
+- guests always receive an empty payment/order list;
+- `demo@alga.exchange` keeps the full existing demo order/history dataset;
+- `approved@alga.exchange` has a separate smaller demo dataset;
+- `blocked@alga.exchange` has its own historical completed/cancelled operations;
+- `unverified@alga.exchange`, `pending@alga.exchange` and `rejected@alga.exchange` start with empty order/history lists;
+- unknown dynamically-created mock accounts also start with empty order/history lists;
+- a newly created payment is written only to the currently active account and is not visible after switching to another account.
+
+Viewing old history requires authentication but not currently approved KYC. This allows a previously verified account that later becomes rejected or blocked to retain access to its own past operations while preventing any new financial operation.
+
 ## KYC states
 
 Application UI and business logic use normalized KYC states instead of raw numeric API values:
