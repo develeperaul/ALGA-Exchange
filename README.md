@@ -46,6 +46,7 @@ For MVP demos, each test account should have its own fixed KYC state. This makes
 
 | Email | Verification state | Blocked | Expected UI |
 | --- | --- | --- | --- |
+| `demo@alga.exchange` | `approved` | no | Верифицирован — основной demo-профиль |
 | `unverified@alga.exchange` | `unverified` | no | Не верифицирован |
 | `pending@alga.exchange` | `pending` | no | Документы на проверке |
 | `approved@alga.exchange` | `approved` | no | Верифицирован |
@@ -58,7 +59,7 @@ Use the same demo password for all test profiles:
 Password: demo12345
 ```
 
-The existing `demo@alga.exchange` account should remain available as the default successful scenario and map to `approved`.
+`demo@alga.exchange` is the default successful scenario and is equivalent to the `approved` demo profile.
 
 Important: `blocked` is not a fifth KYC status. A user may have successfully passed KYC (`approved`) and later have the account blocked independently.
 
@@ -66,6 +67,16 @@ Suggested mock mapping:
 
 ```ts
 const mockProfiles = {
+  'demo@alga.exchange': {
+    verificationStatus: 'approved',
+    kyc: {
+      status: 1,
+      is_blocked: false,
+      identification_error: null,
+    },
+    hasKyc: true,
+    isBlocked: false,
+  },
   'unverified@alga.exchange': {
     verificationStatus: 'unverified',
     kyc: null,
