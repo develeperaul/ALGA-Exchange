@@ -3,6 +3,11 @@ import sberIcon from 'assets/wallet/rub-sber.svg';
 import tbankIcon from 'assets/wallet/rub-tbank.svg';
 import vtbIcon from 'assets/wallet/rub-vtb.svg';
 import mtsIcon from 'assets/wallet/rub-mts.png';
+import alfaIcon from 'assets/wallet/rub-alfa.svg';
+import gazprombankIcon from 'assets/wallet/rub-gazprombank.svg';
+import rosselkhozIcon from 'assets/wallet/rub-rosselkhoz.svg';
+import psbIcon from 'assets/wallet/rub-psb.svg';
+import mkbIcon from 'assets/wallet/rub-mkb.svg';
 import sovcombankPartA from 'assets/wallet/rub-sovcombank-a.svg';
 import sovcombankPartB from 'assets/wallet/rub-sovcombank-b.svg';
 
@@ -11,25 +16,18 @@ export type RubBankId =
   | 'tbank'
   | 'vtb'
   | 'mts'
-  | 'sovcombank'
   | 'alfa'
-  | 'rencredit'
-  | 'otp'
-  | 'ozon'
-  | 'raiffeisen'
-  | 'ubrir'
-  | 'uralsib'
-  | 'yandex'
-  | 'mkb'
-  | 'kazan'
-  | 'inbank';
+  | 'gazprombank'
+  | 'rosselkhoz'
+  | 'sovcombank'
+  | 'psb'
+  | 'mkb';
 
 export interface RubBank {
   id: RubBankId;
   label: string;
   icon?: string;
   iconClass: string;
-  iconText?: string;
   direct?: boolean;
 }
 
@@ -53,25 +51,19 @@ export const rubMethodIcons = {
 
 export const rubBanks: RubBank[] = [
   { id: 'sber', label: 'Сбер', icon: sberIcon, iconClass: 'rub-bank-icon--sber', direct: true },
-  { id: 'tbank', label: 'Т-банк', icon: tbankIcon, iconClass: 'rub-bank-icon--tbank', direct: true },
+  { id: 'tbank', label: 'Т-Банк', icon: tbankIcon, iconClass: 'rub-bank-icon--tbank', direct: true },
   { id: 'vtb', label: 'ВТБ', icon: vtbIcon, iconClass: 'rub-bank-icon--vtb', direct: true },
-  { id: 'mts', label: 'МТС-Деньги', icon: mtsIcon, iconClass: 'rub-bank-icon--mts', direct: true },
-  { id: 'alfa', label: 'Альфа-банк', iconClass: 'rub-bank-icon--alfa', iconText: 'A' },
-  { id: 'rencredit', label: 'Ренессанс Банк', iconClass: 'rub-bank-icon--rencredit', iconText: 'Р' },
+  { id: 'mts', label: 'МТС Банк', icon: mtsIcon, iconClass: 'rub-bank-icon--mts', direct: true },
+  { id: 'alfa', label: 'Альфа-Банк', icon: alfaIcon, iconClass: 'rub-bank-icon--alfa' },
+  { id: 'gazprombank', label: 'Газпромбанк', icon: gazprombankIcon, iconClass: 'rub-bank-icon--gazprombank' },
+  { id: 'rosselkhoz', label: 'Россельхозбанк', icon: rosselkhozIcon, iconClass: 'rub-bank-icon--rosselkhoz' },
   { id: 'sovcombank', label: 'Совкомбанк', iconClass: 'rub-bank-icon--sovcombank' },
-  { id: 'otp', label: 'ОТП-банк', iconClass: 'rub-bank-icon--otp', iconText: '◎' },
-  { id: 'ozon', label: 'Ozon Банк', iconClass: 'rub-bank-icon--ozon', iconText: 'ozon' },
-  { id: 'raiffeisen', label: 'Райффайзенбанк', iconClass: 'rub-bank-icon--raiffeisen', iconText: '×' },
-  { id: 'ubrir', label: 'УБРиР', iconClass: 'rub-bank-icon--ubrir', iconText: 'U' },
-  { id: 'uralsib', label: 'Уралсиб', iconClass: 'rub-bank-icon--uralsib', iconText: 'U' },
-  { id: 'yandex', label: 'Яндекс Банк', iconClass: 'rub-bank-icon--yandex', iconText: 'Я' },
-  { id: 'mkb', label: 'МКБ', iconClass: 'rub-bank-icon--mkb', iconText: 'МКБ' },
-  { id: 'kazan', label: 'Банк Казани', iconClass: 'rub-bank-icon--kazan', iconText: 'К' },
-  { id: 'inbank', label: 'Инбанк', iconClass: 'rub-bank-icon--inbank', iconText: 'i' },
+  { id: 'psb', label: 'ПСБ', icon: psbIcon, iconClass: 'rub-bank-icon--psb' },
+  { id: 'mkb', label: 'МКБ', icon: mkbIcon, iconClass: 'rub-bank-icon--mkb' },
 ];
 
 export const directRubBanks = rubBanks.filter((bank) => bank.direct);
-export const sbpBanks = rubBanks.filter((bank) => !bank.direct || bank.id === 'vtb' || bank.id === 'mts');
+export const sbpBanks = rubBanks;
 
 export const sbpDefaultBankId: RubBankId = 'sovcombank';
 export const sovcombankIconParts = [sovcombankPartA, sovcombankPartB];
