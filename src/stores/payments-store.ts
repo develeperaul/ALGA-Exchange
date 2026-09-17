@@ -16,8 +16,13 @@ import {
   toOrderDetailView,
   toOrderListItemView,
 } from '@/mocks/payments/adapters';
+import { useAuthStore } from '@/stores/auth-store';
 
 type WalletFlowMode = 'deposit' | 'withdraw';
+
+function canViewPayments() {
+  return useAuthStore().isAuthenticated;
+}
 
 export const usePaymentsStore = defineStore('payments', {
   state: () => ({
@@ -32,32 +37,66 @@ export const usePaymentsStore = defineStore('payments', {
   }),
 
   getters: {
-    latestOperations: (state) => [...state.payments]
-      .sort((left, right) => (
-        new Date(right.attributes.created_at).getTime() - new Date(left.attributes.created_at).getTime()
-      ))
-      .slice(0, 5)
-      .map(toHistoryOperationView),
-    ordersActive: (state) => [...state.payments]
-      .filter((payment) => isActivePaymentStatus(payment.attributes.status))
-      .sort((left, right) => (
-        new Date(right.attributes.created_at).getTime() - new Date(left.attributes.created_at).getTime()
-      ))
-      .map(toOrderListItemView),
-    ordersCompleted: (state) => [...state.payments]
-      .filter((payment) => !isActivePaymentStatus(payment.attributes.status))
-      .sort((left, right) => (
-        new Date(right.attributes.created_at).getTime() - new Date(left.attributes.created_at).getTime()
-      ))
-      .map(toOrderListItemView),
-    historyByType: (state) => (type: PaymentTypeCode) => [...state.payments]
-      .filter((payment) => payment.attributes.type === type)
-      .sort((left, right) => (
-        new Date(right.attributes.created_at).getTime() - new Date(left.attributes.created_at).getTime()
-      ))
-      .map(toHistoryOperationView),
-    paymentById: (state) => (id: string) => state.payments.find((payment) => payment.id === id) ?? null,
+    latestOperations: (state) => {
+      if (!canViewPayments()) {
+        return [];
+      }
+
+      return [...state.payments]
+        .sort((left, right) => (
+          new Date(right.attributes.created_at).getTime() - new Date(left.attributes.created_at).getTime()
+        ))
+        .slice(0, 5)
+        .map(toHistoryOperationView);
+    },
+    ordersActive: (state) => {
+      if (!canViewPayments()) {
+        return [];
+      }
+
+      return [...state.payments]
+        .filter((payment) => isActivePaymentStatus(payment.attributes.status))
+        .sort((left, right) => (
+          new Date(right.attributes.created_at).getTime() - new Date(left.attributes.created_at).getTime()
+        ))
+        .map(toOrderListItemView);
+    },
+    ordersCompleted: (state) => {
+      if (!canViewPayments()) {
+        return [];
+      }
+
+      return [...state.payments]
+        .filter((payment) => !isActivePaymentStatus(payment.attributes.status))
+        .sort((left, right) => (
+          new Date(right.attributes.created_at).getTime() - new Date(left.attributes.created_at).getTime()
+        ))
+        .map(toOrderListItemView);
+    },
+    historyByType: (state) => (type: PaymentTypeCode) => {
+      if (!canViewPayments()) {
+        return [];
+      }
+
+      return [...state.payments]
+        .filter((payment) => payment.attributes.type === type)
+        .sort((left, right) => (
+          new Date(right.attributes.created_at).getTime() - new Date(left.attributes.created_at).getTime()
+        ))
+        .map(toHistoryOperationView);
+    },
+    paymentById: (state) => (id: string) => {
+      if (!canViewPayments()) {
+        return null;
+      }
+
+      return state.payments.find((payment) => payment.id === id) ?? null;
+    },
     paymentDetailById: (state) => (id: string) => {
+      if (!canViewPayments()) {
+        return null;
+      }
+
       const payment = state.payments.find((item) => item.id === id);
       return payment ? toOrderDetailView(payment) : null;
     },
@@ -107,6 +146,10 @@ export const usePaymentsStore = defineStore('payments', {
       return payment;
     },
     getPaymentById(id: string) {
+      if (!canViewPayments()) {
+        return null;
+      }
+
       return this.paymentById(id) ?? getMockPaymentById(id);
     },
   },
