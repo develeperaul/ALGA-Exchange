@@ -24,6 +24,14 @@ function canViewPayments() {
   return useAuthStore().isAuthenticated;
 }
 
+function canCreatePayments() {
+  const authStore = useAuthStore();
+
+  return authStore.isAuthenticated
+    && authStore.verificationStatus === 'approved'
+    && !authStore.kycBlocked;
+}
+
 export const usePaymentsStore = defineStore('payments', {
   state: () => ({
     payments: getMockPaymentsSnapshot() as PaymentResource[],
@@ -125,6 +133,10 @@ export const usePaymentsStore = defineStore('payments', {
       this.currency = 'USDT';
     },
     createPayment(input: CreateMockPaymentInput) {
+      if (!canCreatePayments()) {
+        throw new Error('Операции доступны только авторизованным пользователям с подтвержденным KYC');
+      }
+
       const payment = createMockPaymentResource(input);
       this.syncPayments();
       this.lastCreatedPaymentId = payment.id;
