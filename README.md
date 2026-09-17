@@ -15,6 +15,14 @@ This branch is designed to run without an application backend:
 
 Mock latency is intentionally preserved so loading states remain visible during demos.
 
+## Guest vs authorized UI
+
+The existing guest/authorized behavior is preserved.
+
+When no user is signed in, the application continues to show the existing guest layout and static guest content. Personal profile data and KYC state are not injected into guest screens.
+
+After sign-in, the selected mock account becomes the active profile and its own email, name, phone, KYC state and blocked state are used by the application. The active mock profile is also stored locally so a browser refresh does not switch the user back to the default demo account.
+
 ## KYC states
 
 Application UI and business logic use normalized KYC states instead of raw numeric API values:
@@ -38,20 +46,20 @@ Unknown raw statuses are treated as `pending`, never as verified.
 
 `isVerified` is true only when `verificationStatus === 'approved'`; `has_kyc` only means that a KYC record exists.
 
-After a new KYC submission the mock profile moves to `pending`, not directly to `approved`.
+After a new KYC submission the active mock profile moves to `pending`, not directly to `approved`.
 
 ## Demo KYC profiles
 
-For MVP demos, each test account should have its own fixed KYC state. This makes it possible to show every verification scenario simply by signing in with a different email, without developer switches in the UI.
+Each test account has its own profile data and fixed initial KYC scenario. Sign in with another email to demonstrate another state without developer switches in the UI.
 
-| Email | Verification state | Blocked | Expected UI |
-| --- | --- | --- | --- |
-| `demo@alga.exchange` | `approved` | no | Верифицирован — основной demo-профиль |
-| `unverified@alga.exchange` | `unverified` | no | Не верифицирован |
-| `pending@alga.exchange` | `pending` | no | Документы на проверке |
-| `approved@alga.exchange` | `approved` | no | Верифицирован |
-| `rejected@alga.exchange` | `rejected` | no | Верификация отклонена |
-| `blocked@alga.exchange` | `approved` | yes | Аккаунт заблокирован |
+| Email | Name | Phone | Verification state | Blocked | Expected UI |
+| --- | --- | --- | --- | --- | --- |
+| `demo@alga.exchange` | Смирнов Алексей Игоревич | `+7 999 123-45-67` | `approved` | no | Верифицирован — основной demo-профиль |
+| `unverified@alga.exchange` | Петров Иван Алексеевич | `+7 900 111-22-33` | `unverified` | no | Не верифицирован |
+| `pending@alga.exchange` | Иванова Мария Сергеевна | `+7 901 222-33-44` | `pending` | no | Документы на проверке |
+| `approved@alga.exchange` | Соколов Дмитрий Андреевич | `+7 902 333-44-55` | `approved` | no | Верифицирован |
+| `rejected@alga.exchange` | Кузнецова Елена Викторовна | `+7 903 444-55-66` | `rejected` | no | Верификация отклонена |
+| `blocked@alga.exchange` | Волков Андрей Михайлович | `+7 904 555-66-77` | `approved` | yes | Аккаунт заблокирован |
 
 Use the same demo password for all test profiles:
 
@@ -63,68 +71,7 @@ Password: demo12345
 
 Important: `blocked` is not a fifth KYC status. A user may have successfully passed KYC (`approved`) and later have the account blocked independently.
 
-Suggested mock mapping:
-
-```ts
-const mockProfiles = {
-  'demo@alga.exchange': {
-    verificationStatus: 'approved',
-    kyc: {
-      status: 1,
-      is_blocked: false,
-      identification_error: null,
-    },
-    hasKyc: true,
-    isBlocked: false,
-  },
-  'unverified@alga.exchange': {
-    verificationStatus: 'unverified',
-    kyc: null,
-    hasKyc: false,
-    isBlocked: false,
-  },
-  'pending@alga.exchange': {
-    verificationStatus: 'pending',
-    kyc: {
-      status: 0,
-      is_blocked: false,
-      identification_error: null,
-    },
-    hasKyc: true,
-    isBlocked: false,
-  },
-  'approved@alga.exchange': {
-    verificationStatus: 'approved',
-    kyc: {
-      status: 1,
-      is_blocked: false,
-      identification_error: null,
-    },
-    hasKyc: true,
-    isBlocked: false,
-  },
-  'rejected@alga.exchange': {
-    verificationStatus: 'rejected',
-    kyc: {
-      status: 2,
-      is_blocked: false,
-      identification_error: 'Не удалось подтвердить личность',
-    },
-    hasKyc: true,
-    isBlocked: false,
-  },
-  'blocked@alga.exchange': {
-    verificationStatus: 'approved',
-    kyc: {
-      status: 1,
-      is_blocked: true,
-      identification_error: null,
-    },
-    hasKyc: true,
-    isBlocked: true,
-  },
-};
-```
+Unknown emails are also accepted in mock mode. They create a local unverified profile with that email so registration/demo flows can still be exercised.
 
 ## Banks
 
