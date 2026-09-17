@@ -10,288 +10,50 @@ import type {
   PaymentsResponse,
   PaymentStatusCode,
 } from '@/models';
-import { mockBanksResponse } from '@/mocks/payments/banks';
+import {
+  mockBanksResponse,
+  type MockBankId,
+} from '@/mocks/payments/banks';
 
-const PAYMENTS_PATH = 'http://localhost/api/payments';
+const PAYMENTS_PATH = '/mock-api/payments';
 const DEFAULT_PAGE_SIZE = 15;
 
 let paymentIdCounter = 1000;
 
-const seedPayments: PaymentResource[] = [
-  {
-    id: '1',
-    type: 'payments',
-    attributes: {
-      status: 4,
-      amount: '4332.13',
-      created_at: '2026-05-24T09:26:44Z',
-      payload: { deep_link: null, qr_url: null },
-      bank: makeBankSnapshot('1'),
-      method: 0,
-      currency: 'RUB',
-      type: 0,
-    },
-  },
-  {
-    id: '2',
-    type: 'payments',
-    attributes: {
-      status: 1,
-      amount: '1800.00',
-      created_at: '2026-05-26T12:14:00Z',
-      payload: { deep_link: null, qr_url: null },
-      bank: makeBankSnapshot('3'),
-      method: 0,
-      currency: 'USDT',
-      type: 1,
-    },
-  },
-  {
-    id: '3',
-    type: 'payments',
-    attributes: {
-      status: 0,
-      amount: '22000.00',
-      created_at: '2026-05-27T08:10:00Z',
-      payload: { deep_link: null, qr_url: null },
-      bank: makeBankSnapshot('4'),
-      method: 1,
-      currency: 'RUB',
-      type: 0,
-    },
-  },
-  {
-    id: '4',
-    type: 'payments',
-    attributes: {
-      status: 5,
-      amount: '950.00',
-      created_at: '2026-05-22T14:45:00Z',
-      payload: { deep_link: null, qr_url: null },
-      bank: makeBankSnapshot('2'),
-      method: 0,
-      currency: 'USDT',
-      type: 1,
-    },
-  },
-  {
-    id: '5',
-    type: 'payments',
-    attributes: {
-      status: 4,
-      amount: '1200.00',
-      created_at: '2026-05-28T10:01:00Z',
-      payload: {
-        deep_link: 'https://example.com/payments/5',
-        qr_url: 'https://example.com/payments/5/qr',
-      },
-      bank: makeBankSnapshot('4'),
-      method: 2,
-      currency: 'USDT',
-      type: 0,
-    },
-  },
-  {
-    id: '6',
-    type: 'payments',
-    attributes: {
-      status: 2,
-      amount: '8600.00',
-      created_at: '2026-05-29T16:20:00Z',
-      payload: { deep_link: null, qr_url: null },
-      bank: makeBankSnapshot('1'),
-      method: 0,
-      currency: 'RUB',
-      type: 1,
-    },
-  },
-  {
-    id: '7',
-    type: 'payments',
-    attributes: {
-      status: 3,
-      amount: '785.50',
-      created_at: '2026-05-30T06:32:00Z',
-      payload: { deep_link: null, qr_url: null },
-      bank: makeBankSnapshot('3'),
-      method: 0,
-      currency: 'USDT',
-      type: 0,
-    },
-  },
-  {
-    id: '8',
-    type: 'payments',
-    attributes: {
-      status: 4,
-      amount: '15000.00',
-      created_at: '2026-05-20T09:10:00Z',
-      payload: { deep_link: null, qr_url: null },
-      bank: makeBankSnapshot('2'),
-      method: 1,
-      currency: 'RUB',
-      type: 1,
-    },
-  },
-  {
-    id: '9',
-    type: 'payments',
-    attributes: {
-      status: 1,
-      amount: '410.00',
-      created_at: '2026-05-31T08:11:00Z',
-      payload: {
-        deep_link: 'https://example.com/payments/9',
-        qr_url: 'https://example.com/payments/9/qr',
-      },
-      bank: makeBankSnapshot('4'),
-      method: 2,
-      currency: 'USDT',
-      type: 1,
-    },
-  },
-  {
-    id: '10',
-    type: 'payments',
-    attributes: {
-      status: 4,
-      amount: '6400.00',
-      created_at: '2026-05-19T07:25:00Z',
-      payload: { deep_link: null, qr_url: null },
-      bank: makeBankSnapshot('1'),
-      method: 0,
-      currency: 'RUB',
-      type: 0,
-    },
-  },
-  {
-    id: '11',
-    type: 'payments',
-    attributes: {
-      status: 0,
-      amount: '930.20',
-      created_at: '2026-05-18T13:05:00Z',
-      payload: { deep_link: null, qr_url: null },
-      bank: makeBankSnapshot('4'),
-      method: 1,
-      currency: 'USDT',
-      type: 1,
-    },
-  },
-  {
-    id: '12',
-    type: 'payments',
-    attributes: {
-      status: 4,
-      amount: '21000.00',
-      created_at: '2026-05-17T15:18:00Z',
-      payload: { deep_link: null, qr_url: null },
-      bank: makeBankSnapshot('3'),
-      method: 0,
-      currency: 'RUB',
-      type: 0,
-    },
-  },
-  {
-    id: '13',
-    type: 'payments',
-    attributes: {
-      status: 5,
-      amount: '560.00',
-      created_at: '2026-05-16T18:44:00Z',
-      payload: {
-        deep_link: 'https://example.com/payments/13',
-        qr_url: 'https://example.com/payments/13/qr',
-      },
-      bank: makeBankSnapshot('4'),
-      method: 2,
-      currency: 'USDT',
-      type: 0,
-    },
-  },
-  {
-    id: '14',
-    type: 'payments',
-    attributes: {
-      status: 1,
-      amount: '3200.00',
-      created_at: '2026-05-15T10:10:00Z',
-      payload: { deep_link: null, qr_url: null },
-      bank: makeBankSnapshot('2'),
-      method: 0,
-      currency: 'RUB',
-      type: 1,
-    },
-  },
-  {
-    id: '15',
-    type: 'payments',
-    attributes: {
-      status: 4,
-      amount: '112.00',
-      created_at: '2026-05-14T07:30:00Z',
-      payload: { deep_link: null, qr_url: null },
-      bank: makeBankSnapshot('1'),
-      method: 1,
-      currency: 'USDT',
-      type: 0,
-    },
-  },
-  {
-    id: '16',
-    type: 'payments',
-    attributes: {
-      status: 3,
-      amount: '8700.00',
-      created_at: '2026-05-13T09:05:00Z',
-      payload: { deep_link: null, qr_url: null },
-      bank: makeBankSnapshot('3'),
-      method: 0,
-      currency: 'RUB',
-      type: 1,
-    },
-  },
-  {
-    id: '17',
-    type: 'payments',
-    attributes: {
-      status: 4,
-      amount: '730.75',
-      created_at: '2026-05-12T12:12:00Z',
-      payload: {
-        deep_link: 'https://example.com/payments/17',
-        qr_url: 'https://example.com/payments/17/qr',
-      },
-      bank: makeBankSnapshot('4'),
-      method: 2,
-      currency: 'USDT',
-      type: 0,
-    },
-  },
-  {
-    id: '18',
-    type: 'payments',
-    attributes: {
-      status: 2,
-      amount: '14200.00',
-      created_at: '2026-05-11T17:20:00Z',
-      payload: { deep_link: null, qr_url: null },
-      bank: makeBankSnapshot('2'),
-      method: 0,
-      currency: 'RUB',
-      type: 1,
-    },
-  },
+type SeedPayment = {
+  id: string;
+  status: PaymentStatusCode;
+  amount: string;
+  createdAt: string;
+  bankId: MockBankId;
+  method: PaymentMethodCode;
+  currency: PaymentResource['attributes']['currency'];
+  type: PaymentResource['attributes']['type'];
+};
+
+const seedRows: SeedPayment[] = [
+  { id: '1', status: 4, amount: '4332.13', createdAt: '2026-09-16T09:26:44Z', bankId: 'sber', method: 0, currency: 'RUB', type: 0 },
+  { id: '2', status: 1, amount: '1800.00', createdAt: '2026-09-15T12:14:00Z', bankId: 'tbank', method: 0, currency: 'USDT', type: 1 },
+  { id: '3', status: 0, amount: '22000.00', createdAt: '2026-09-14T08:10:00Z', bankId: 'vtb', method: 1, currency: 'RUB', type: 0 },
+  { id: '4', status: 5, amount: '950.00', createdAt: '2026-09-13T14:45:00Z', bankId: 'mts', method: 0, currency: 'USDT', type: 1 },
+  { id: '5', status: 4, amount: '1200.00', createdAt: '2026-09-12T10:01:00Z', bankId: 'alfa', method: 2, currency: 'USDT', type: 0 },
+  { id: '6', status: 2, amount: '8600.00', createdAt: '2026-09-11T16:20:00Z', bankId: 'gazprombank', method: 0, currency: 'RUB', type: 1 },
+  { id: '7', status: 3, amount: '785.50', createdAt: '2026-09-10T06:32:00Z', bankId: 'rosselkhoz', method: 0, currency: 'USDT', type: 0 },
+  { id: '8', status: 4, amount: '15000.00', createdAt: '2026-09-09T09:10:00Z', bankId: 'sovcombank', method: 1, currency: 'RUB', type: 1 },
+  { id: '9', status: 1, amount: '410.00', createdAt: '2026-09-08T08:11:00Z', bankId: 'psb', method: 1, currency: 'USDT', type: 1 },
+  { id: '10', status: 4, amount: '6400.00', createdAt: '2026-09-07T07:25:00Z', bankId: 'mkb', method: 0, currency: 'RUB', type: 0 },
+  { id: '11', status: 0, amount: '930.20', createdAt: '2026-09-06T13:05:00Z', bankId: 'sber', method: 1, currency: 'USDT', type: 1 },
+  { id: '12', status: 4, amount: '21000.00', createdAt: '2026-09-05T15:18:00Z', bankId: 'alfa', method: 0, currency: 'RUB', type: 0 },
+  { id: '13', status: 5, amount: '560.00', createdAt: '2026-09-04T18:44:00Z', bankId: 'gazprombank', method: 2, currency: 'USDT', type: 0 },
+  { id: '14', status: 1, amount: '3200.00', createdAt: '2026-09-03T10:10:00Z', bankId: 'tbank', method: 0, currency: 'RUB', type: 1 },
+  { id: '15', status: 4, amount: '112.00', createdAt: '2026-09-02T07:30:00Z', bankId: 'rosselkhoz', method: 1, currency: 'USDT', type: 0 },
+  { id: '16', status: 3, amount: '8700.00', createdAt: '2026-09-01T09:05:00Z', bankId: 'sovcombank', method: 0, currency: 'RUB', type: 1 },
+  { id: '17', status: 4, amount: '730.75', createdAt: '2026-08-31T12:12:00Z', bankId: 'psb', method: 0, currency: 'USDT', type: 0 },
+  { id: '18', status: 2, amount: '14200.00', createdAt: '2026-08-30T17:20:00Z', bankId: 'mkb', method: 0, currency: 'RUB', type: 1 },
 ];
 
-let mockPayments = [...seedPayments];
-
-export function getMockPaymentsSnapshot() {
-  return [...mockPayments];
-}
-
 function makeBankSnapshot(bankId: string): PaymentBank {
-  const bank = mockBanksResponse.data.find((item) => item.id === bankId) ?? mockBanksResponse.data[0];
+  const bank = getBankResourceById(bankId) ?? mockBanksResponse.data[0];
 
   return {
     id: bank.id,
@@ -300,22 +62,39 @@ function makeBankSnapshot(bankId: string): PaymentBank {
   };
 }
 
-function makeNamedBankSnapshot(bankId: string): PaymentBank {
-  const known = mockBanksResponse.data.find((item) => item.id === bankId);
-
-  if (known) {
-    return {
-      id: known.id,
-      name: known.attributes.name,
-      type: known.attributes.type,
-    };
-  }
-
+function makeCryptoSnapshot(currency: PaymentResource['attributes']['currency']): PaymentBank {
   return {
-    id: bankId,
-    name: bankId,
-    type: 0,
+    id: 'crypto',
+    name: currency === 'USDT' ? 'TRON' : 'Crypto',
+    type: 2,
   };
+}
+
+function makeSeedPayment(row: SeedPayment): PaymentResource {
+  return {
+    id: row.id,
+    type: 'payments',
+    attributes: {
+      status: row.status,
+      amount: row.amount,
+      created_at: row.createdAt,
+      payload: {
+        deep_link: row.method === 2 ? `#/mock-payment/${row.id}` : null,
+        qr_url: null,
+      },
+      bank: row.method === 2 ? makeCryptoSnapshot(row.currency) : makeBankSnapshot(row.bankId),
+      method: row.method,
+      currency: row.currency,
+      type: row.type,
+    },
+  };
+}
+
+const seedPayments = seedRows.map(makeSeedPayment);
+let mockPayments = [...seedPayments];
+
+export function getMockPaymentsSnapshot() {
+  return [...mockPayments];
 }
 
 function normalizeStatusFilter(status?: PaymentsFilter['status']) {
@@ -436,16 +215,13 @@ export function getMockBanksResponse() {
   return mockBanksResponse;
 }
 
+function normalizeLocalReference(value?: string | null) {
+  if (!value) return null;
+  return /^https?:\/\//i.test(value) ? null : value;
+}
+
 export function createMockPaymentResource(input: CreateMockPaymentInput) {
   paymentIdCounter += 1;
-
-  const bank = input.method === 2
-    ? {
-        id: 'crypto',
-        name: input.currency === 'USDT' ? 'tron' : 'crypto',
-        type: 2,
-      }
-    : makeNamedBankSnapshot(input.bankId ?? '1');
 
   const payment: PaymentResource = {
     id: String(paymentIdCounter),
@@ -455,10 +231,12 @@ export function createMockPaymentResource(input: CreateMockPaymentInput) {
       amount: input.amount,
       created_at: new Date().toISOString(),
       payload: {
-        deep_link: input.deepLink ?? (input.method === 2 ? 'https://example.com/payments/deep-link' : null),
-        qr_url: input.qrUrl ?? (input.method === 2 ? 'https://example.com/payments/qr-code' : null),
+        deep_link: normalizeLocalReference(input.deepLink) ?? (input.method === 2 ? '#/wallet' : null),
+        qr_url: normalizeLocalReference(input.qrUrl),
       },
-      bank,
+      bank: input.method === 2
+        ? makeCryptoSnapshot(input.currency)
+        : makeBankSnapshot(input.bankId ?? 'sber'),
       method: input.method,
       currency: input.currency,
       type: input.type,
