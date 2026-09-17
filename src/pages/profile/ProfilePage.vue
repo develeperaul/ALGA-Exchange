@@ -68,13 +68,18 @@
         </section>
         <ProfileMenuRow class="profile-row" icon="faq" label="Часто задаваемые вопросы" chevron="right" @click="goFaq" />
         <ProfileMenuRow class="profile-row" icon="support" label="Техподдержка" />
+
+        <UiButton
+          class="profile-logout-button"
+          size="mini"
+          variant="neutral"
+          @click="logout"
+        >
+          Выйти из аккаунта
+        </UiButton>
       </template>
 
-      <footer class="profile-meta" :class="{ 'profile-meta--auth': profileVariant === 'authorized' }">
-        <button v-if="profileVariant === 'authorized'" class="profile-logout" type="button" @click="logout">
-          <span class="profile-logout__icon" aria-hidden="true" />
-          Выйти из аккаунта
-        </button>
+      <footer class="profile-meta">
         <p>Версия 1.0</p>
       </footer>
     </main>
@@ -114,6 +119,7 @@ function goKyc() {
 
 function logout() {
   authStore.logout();
+  void router.replace('/profile');
 }
 </script>
 
@@ -134,7 +140,6 @@ function logout() {
     calc(16px + var(--ui-safe-area-right))
     24px
     calc(16px + var(--ui-safe-area-left));
-  position: relative;
   background: var(--ui-surface-page);
   color: var(--ui-text-primary);
   font-family: var(--ui-font-family);
@@ -313,57 +318,21 @@ function logout() {
   letter-spacing: -0.3px;
 }
 
+.profile-logout-button {
+  margin-top: 24px;
+}
+
 .profile-meta {
   width: 100%;
-  position: absolute;
-  left: 0;
-  bottom: 20px;
+  margin-top: 24px;
+  padding-bottom: 4px;
   color: var(--ui-text-muted);
   text-align: center;
   font-size: var(--ui-font-t3);
   line-height: var(--ui-line-t3);
 }
 
-.profile-meta--auth {
-  bottom: 18px;
-}
-
 .profile-meta p {
   margin: 0;
-}
-
-.profile-logout {
-  margin: 0 0 14px;
-  padding: 0;
-  border: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  color: #C9C9D1;
-  font-family: var(--ui-font-family);
-  font-size: var(--ui-font-t3);
-  line-height: var(--ui-line-t3);
-}
-
-.profile-logout__icon {
-  width: 18px;
-  height: 18px;
-  border-left: 5px solid currentColor;
-  border-radius: 2px;
-  position: relative;
-  display: block;
-}
-
-.profile-logout__icon::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-top: 2px solid currentColor;
-  border-right: 2px solid currentColor;
-  position: absolute;
-  right: 1px;
-  top: 5px;
-  transform: rotate(45deg);
 }
 </style>
