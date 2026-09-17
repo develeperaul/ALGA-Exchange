@@ -32,8 +32,36 @@ export default route(function ({ store }) {
     history: createHistory(process.env.VUE_ROUTER_BASE),
   });
 
-  Router.beforeEach((to) => {
+  Router.beforeEach(async (to) => {
     const authStore = useAuthStore(store);
+    const requiresAuth = Boolean(to.meta.requiresAuth);
+    const requiresApprovedKyc = Boolean(to.meta.requiresApprovedKyc);
+    const isProtectedRoute = requiresAuth || requiresApprovedKyc;
+
+    if (isProtectedRoute && !authStore.isAuthenticated) {
+      return '/auth';
+    }
+
+    // The token is restored synchronously, while the profile is loaded
+    // asynchronously. Protected routes must wait for the profile before
+    // making an authorization/KYC decision after a page refresh.
+    if (isProtectedRoute && authStore.isAuthenticated && !authStore.profile) {
+      await authStore.fetchProfile();
+    }
+
+    if (isProtectedRoute && !authStore.isAuthenticated) {
+      return '/auth';
+    }
+
+    if (requiresApprovedKyc) {
+      if (authStore.kycBlocked) {
+        return '/kyc/blocked';
+      }
+
+      if (authStore.verificationStatus !== 'approved') {
+        return '/profile';
+      }
+    }
 
     if (
       authStore.isAuthenticated &&
