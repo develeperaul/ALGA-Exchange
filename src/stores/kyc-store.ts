@@ -4,6 +4,8 @@ import type {
   KycUploadValue,
 } from 'components/kyc/useKycLocalState';
 
+const KYC_PHONE_STORAGE_KEY = 'kyc_phone';
+
 export interface KycStoreState {
   phone: string;
   code: string;
@@ -47,8 +49,31 @@ export const useKycStore = defineStore('kyc', {
   }),
 
   actions: {
+    hydrate() {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      const savedPhone = window.localStorage.getItem(KYC_PHONE_STORAGE_KEY);
+      this.phone = savedPhone || '';
+    },
+
+    persistPhone() {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      if (this.phone) {
+        window.localStorage.setItem(KYC_PHONE_STORAGE_KEY, this.phone);
+        return;
+      }
+
+      window.localStorage.removeItem(KYC_PHONE_STORAGE_KEY);
+    },
+
     reset() {
       this.phone = '';
+      this.persistPhone();
       this.code = '';
       this.selectedCountry = 'RU';
       this.documents = {

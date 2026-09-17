@@ -25,9 +25,11 @@
 </template>
 
 <script setup lang="ts">
+import { HTTPError } from 'ky';
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { registerKyc } from '@/api/kyc';
+import { registerKyc, sendKycPhoneCode } from '@/api/kyc';
+import { notifyError } from '@/utils/notify';
 import KycStepLayout from 'components/kyc/KycStepLayout.vue';
 import KycStepActions from 'components/kyc/KycStepActions.vue';
 import UiButton from 'components/ui/UiButton.vue';
@@ -49,53 +51,60 @@ const code = computed({
   },
 });
 
-async function goNext() {
-  if (kycStore.code.length !== 6 || kycStore.isPhoneCodeLoading) {
-    return;
-  }
-
-  kycStore.isPhoneCodeLoading = true;
-
-  try {
-    await registerKyc({
-      passport_type: kycStore.selectedCountry === 'FOREIGN' ? 'other' : 'ru',
-      phone: formatPhoneForApi(kycStore.phone),
-      code: kycStore.code,
-      address: kycStore.selectedCountry === 'FOREIGN'
-        ? kycStore.documents.address.trim()
-        : null,
-    });
-
-    await router.push('/kyc/result');
-  } catch {
-    // Ошибка - показываем статус ошибки
-    await router.push('/kyc/phone/status');
-  } finally {
-    kycStore.isPhoneCodeLoading = false;
-  }
-}
-
 function formatPhoneForApi(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 11);
 
   return digits ? `+${digits}` : '';
 }
 
-async function resendCode() {
-  if (kycStore.isPhoneCodeLoading) {
+function buildRegisterPayload(code: string) {
+  return {
+    passport_type: kycStore.selectedCountry === 'FOREIGN' ? 'other' : 'ru',
+    phone: formatPhoneForApi(kycStore.phone),
+    code,
+    address: kycStore.selectedCountry === 'FOREIGN'
+      ? kycStore.documents.address.trim()
+      : null,
+  } as const;
+}
+
+async function goNext() {
+  if (kycStore.code.length !== 6 || kycStore.isPhoneCodeLoading || !kycStore.phone) {
     return;
   }
 
   kycStore.isPhoneCodeLoading = true;
 
   try {
-    await registerKyc({
-      passport_type: kycStore.selectedCountry === 'FOREIGN' ? 'other' : 'ru',
-      phone: formatPhoneForApi(kycStore.phone),
-      address: kycStore.selectedCountry === 'FOREIGN'
-        ? kycStore.documents.address.trim()
-        : null,
-    });
+    await registerKyc(buildRegisterPayload(kycStore.code));
+    kycStore.reset();
+    await router.replace('/kyc/result');
+  } catch (error) {
+    if (!(error instanceof HTTPError)) {
+      notifyError(error);
+    }
+  } finally {
+    kycStore.isPhoneCodeLoading = false;
+  }
+}
+
+async function resendCode() {
+  if (kycStore.isPhoneCodeLoading || !kycStore.phone) {
+    if (!kycStore.phone) {
+      notifyError('Не найден номер телефона');
+    }
+
+    return;
+  }
+
+  kycStore.isPhoneCodeLoading = true;
+
+  try {
+    await sendKycPhoneCode({ phone: formatPhoneForApi(kycStore.phone) });
+  } catch (error) {
+    if (!(error instanceof HTTPError)) {
+      notifyError(error);
+    }
   } finally {
     kycStore.isPhoneCodeLoading = false;
   }

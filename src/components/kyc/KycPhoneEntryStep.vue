@@ -15,8 +15,8 @@
         maxlength="16"
       />
 
-      <UiButton class="kyc-phone-entry__submit" :disabled="!canContinue" @click="goNext">
-        Продолжить
+      <UiButton class="kyc-phone-entry__submit" :disabled="!canContinue || kycStore.isPhoneCodeLoading" @click="goNext">
+        {{ kycStore.isPhoneCodeLoading ? 'Отправка...' : 'Продолжить' }}
       </UiButton>
 
       <div class="kyc-phone-entry__hint">
@@ -100,24 +100,26 @@ const phone = computed({
   get: () => kycStore.phone,
   set: (value: string) => {
     kycStore.phone = formatPhone(value);
+    kycStore.persistPhone();
   },
 });
 
 const canContinue = computed(() => extractPhoneDigits(kycStore.phone).length === 11);
 
-function formatPhoneForApi(value: string) {
-  const digits = extractPhoneDigits(value);
-
-  return digits ? `+${digits}` : '';
-}
-
-function goNext() {
+async function goNext() {
   if (!canContinue.value) {
     return;
   }
 
-  kycStore.phone = formatPhone(kycStore.phone.trim());
-  void router.push('/kyc/documents');
+  kycStore.isPhoneCodeLoading = true;
+
+  try {
+    kycStore.phone = formatPhone(kycStore.phone.trim());
+    kycStore.persistPhone();
+    await router.push('/kyc/documents');
+  } finally {
+    kycStore.isPhoneCodeLoading = false;
+  }
 }
 </script>
 

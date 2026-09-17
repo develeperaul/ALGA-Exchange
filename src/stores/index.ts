@@ -1,6 +1,7 @@
 import { store } from 'quasar/wrappers'
 import { createPinia } from 'pinia'
 import { useAuthStore } from './auth-store'
+import { useKycStore } from './kyc-store'
 import { usePaymentsStore } from './payments-store'
 import { Router } from 'vue-router';
 
@@ -32,6 +33,7 @@ export default store((/* { ssrContext } */) => {
 
   if (typeof window !== 'undefined') {
     useAuthStore(pinia).hydrate()
+    useKycStore(pinia).hydrate()
     usePaymentsStore(pinia).syncPayments()
   }
 

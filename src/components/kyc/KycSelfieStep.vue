@@ -22,17 +22,19 @@
     </section>
 
     <template #footer>
-      <UiButton :disabled="selfie.status !== 'uploaded'" @click="goNext">
-        Далее
+      <UiButton :disabled="selfie.status !== 'uploaded' || kycStore.isRegistering" @click="goNext">
+        {{ kycStore.isRegistering ? 'Отправляем...' : 'Отправить' }}
       </UiButton>
     </template>
   </KycStepLayout>
 </template>
 
 <script setup lang="ts">
+import { HTTPError } from 'ky';
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { deletePassport, uploadPassport } from '@/api/kyc';
+import { deletePassport, registerKyc, uploadPassport } from '@/api/kyc';
+import { notifyError } from '@/utils/notify';
 import KycStepLayout from 'components/kyc/KycStepLayout.vue';
 import KycUploadSlot from 'components/kyc/KycUploadSlot.vue';
 import UiButton from 'components/ui/UiButton.vue';
@@ -88,14 +90,43 @@ async function removeSelfie() {
   kycStore.selfie.status = 'idle';
 }
 
-function goNext() {
+function formatPhoneForApi(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
 
-  if (kycStore.selfie.status !== 'uploaded') {
+  return digits ? `+${digits}` : '';
+}
+
+function buildRegisterPayload() {
+  return {
+    passport_type: kycStore.selectedCountry === 'FOREIGN' ? 'other' : 'ru',
+    phone: formatPhoneForApi(kycStore.phone),
+    address: kycStore.selectedCountry === 'FOREIGN'
+      ? kycStore.documents.address.trim()
+      : null,
+  } as const;
+}
+
+async function goNext() {
+  if (kycStore.selfie.status !== 'uploaded' || kycStore.isRegistering || !kycStore.phone) {
+    if (!kycStore.phone) {
+      notifyError('Не найден номер телефона');
+    }
+
     return;
   }
-  console.log('sss');
 
-  void router.push('/kyc/sending');
+  kycStore.isRegistering = true;
+
+  try {
+    await registerKyc(buildRegisterPayload());
+    await router.push('/kyc/phone/code');
+  } catch (error) {
+    if (!(error instanceof HTTPError)) {
+      notifyError(error);
+    }
+  } finally {
+    kycStore.isRegistering = false;
+  }
 }
 </script>
 

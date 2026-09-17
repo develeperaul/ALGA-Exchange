@@ -8,53 +8,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { registerKyc } from '@/api/kyc';
 import KycStepLayout from 'components/kyc/KycStepLayout.vue';
 import UiSpinner from 'components/ui/UiSpinner.vue';
-import { useKycStore } from 'stores/kyc-store';
 
 defineOptions({
   name: 'KycSendingStep',
-});
-
-const router = useRouter();
-const kycStore = useKycStore();
-
-function formatPhoneForApi(value: string) {
-  const digits = value.replace(/\D/g, '').slice(0, 11);
-
-  return digits ? `+${digits}` : '';
-}
-
-onMounted(() => {
-  void (async () => {
-    kycStore.isRegistering = true;
-
-    try {
-      await registerKyc({
-        passport_type: kycStore.selectedCountry === 'FOREIGN' ? 'other' : 'ru',
-        phone: formatPhoneForApi(kycStore.phone),
-        code: kycStore.code || undefined,
-        address: kycStore.selectedCountry === 'FOREIGN'
-          ? kycStore.documents.address.trim()
-          : null,
-      });
-
-      await router.replace('/kyc/result');
-    } catch (error) {
-      // Если код не введен - первый вызов, нужно запросить SMS
-      if (!kycStore.code) {
-        await router.replace('/kyc/phone/code');
-      } else {
-        // Если код введен но ошибка - показываем экран ошибки
-        await router.replace('/kyc/selfie');
-      }
-    } finally {
-      kycStore.isRegistering = false;
-    }
-  })();
 });
 </script>
 
