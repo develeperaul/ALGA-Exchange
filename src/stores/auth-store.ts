@@ -7,8 +7,34 @@ import {
   sendRegisterCode as sendRegisterCodeRequest,
   setRegisterPassword as setRegisterPasswordRequest,
 } from '@/api/auth';
-import type { ProfileApiData, ProfileData } from '@/models';
+import {
+  KYC_API_STATUS,
+  type KycVerificationStatus,
+  type ProfileApiData,
+  type ProfileData,
+} from '@/models';
 import { getStoredToken, setStoredToken } from '@/utils/auth-token';
+
+function resolveVerificationStatus(data: ProfileApiData): KycVerificationStatus {
+  const kyc = data.attributes?.kyc ?? null;
+  const hasKyc = Boolean(data.meta?.has_kyc);
+
+  if (!hasKyc || !kyc) {
+    return 'unverified';
+  }
+
+  if (kyc.status === KYC_API_STATUS.APPROVED) {
+    return 'approved';
+  }
+
+  if (kyc.status === KYC_API_STATUS.REJECTED || Boolean(kyc.identification_error)) {
+    return 'rejected';
+  }
+
+  // Pending is also the safe fallback for an unknown raw status: identity
+  // must never be considered verified until the API explicitly approves it.
+  return 'pending';
+}
 
 function normalizeProfile(data: ProfileApiData): ProfileData {
   const attributes = data.attributes;
@@ -29,7 +55,8 @@ function normalizeProfile(data: ProfileApiData): ProfileData {
   const hasPhone = Boolean(meta?.has_phone);
   const kycStatus = kyc?.status ?? null;
   const kycBlocked = Boolean(kyc?.is_blocked);
-  const verified = hasKyc;
+  const verificationStatus = resolveVerificationStatus(data);
+  const verified = verificationStatus === 'approved';
 
   return {
     id: data.id,
@@ -41,6 +68,7 @@ function normalizeProfile(data: ProfileApiData): ProfileData {
     hasKyc,
     hasPhone,
     kycStatus,
+    verificationStatus,
     kycBlocked,
     name,
     verified,
@@ -63,8 +91,9 @@ export const useAuthStore = defineStore('auth', {
     hasKyc: (state) => Boolean(state.profile?.hasKyc),
     hasPhone: (state) => Boolean(state.profile?.hasPhone),
     kycStatus: (state) => state.profile?.kycStatus ?? null,
+    verificationStatus: (state): KycVerificationStatus => state.profile?.verificationStatus ?? 'unverified',
     kycBlocked: (state) => Boolean(state.profile?.kycBlocked),
-    isVerified: (state) => Boolean(state.profile?.hasKyc),
+    isVerified: (state) => Boolean(state.profile?.verified),
   },
   actions: {
     hydrate() {
