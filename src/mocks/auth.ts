@@ -27,7 +27,7 @@ let tokenCounter = 1;
 
 function delay<T>(value: T): Promise<T> {
   return new Promise((resolve) => {
-    window.setTimeout(() => resolve(value), MOCK_DELAY_MS);
+    globalThis.setTimeout(() => resolve(value), MOCK_DELAY_MS);
   });
 }
 
@@ -86,12 +86,8 @@ export async function mockSendRegisterCode(payload: SendRegisterCodePayload): Pr
   return delay({ data: { status: 'sent' } });
 }
 
-export async function mockCheckRegisterCode(payload: CheckRegisterCodePayload): Promise<RegisterCodeCheckResponse> {
-  return delay({
-    data: {
-      token: payload.code === MOCK_CODE ? makeToken('register-code') : makeToken('register-code'),
-    },
-  });
+export async function mockCheckRegisterCode(_payload: CheckRegisterCodePayload): Promise<RegisterCodeCheckResponse> {
+  return delay({ data: { token: makeToken('register-code') } });
 }
 
 export async function mockSetRegisterPassword(_payload: SetRegisterPasswordPayload): Promise<RegisterPasswordResponse> {
