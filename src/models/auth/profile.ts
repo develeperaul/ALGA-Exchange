@@ -1,7 +1,21 @@
 import type { ApiResponse } from '@/models/common/api';
 
+export const KYC_API_STATUS = {
+  PENDING: 0,
+  APPROVED: 1,
+  REJECTED: 2,
+} as const;
+
+export type KycVerificationStatus =
+  | 'unverified'
+  | 'pending'
+  | 'approved'
+  | 'rejected';
+
 export interface ProfileKyc {
+  /** Raw backend status. Normalize it before using it in UI. */
   status: number;
+  /** Account restriction is independent from identity verification status. */
   is_blocked: boolean | null;
   identification_error: string | null;
 }
@@ -41,8 +55,13 @@ export interface ProfileData {
   kyc: ProfileKyc | null;
   hasKyc: boolean;
   hasPhone: boolean;
+  /** Raw API status, retained for compatibility/debugging only. */
   kycStatus: number | null;
+  /** Domain-level status used by application UI and business logic. */
+  verificationStatus: KycVerificationStatus;
+  /** Independent account restriction flag. */
   kycBlocked: boolean;
+  /** True only after successful identity verification. */
   verified: boolean;
 }
 
