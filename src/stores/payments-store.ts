@@ -20,8 +20,18 @@ import { useAuthStore } from '@/stores/auth-store';
 
 type WalletFlowMode = 'deposit' | 'withdraw';
 
+function currentPaymentOwnerEmail() {
+  const authStore = useAuthStore();
+
+  if (!authStore.isAuthenticated) {
+    return '';
+  }
+
+  return authStore.profileEmail.trim().toLowerCase();
+}
+
 function canViewPayments() {
-  return useAuthStore().isAuthenticated;
+  return Boolean(currentPaymentOwnerEmail());
 }
 
 function canCreatePayments() {
@@ -32,9 +42,17 @@ function canCreatePayments() {
     && !authStore.kycBlocked;
 }
 
+function getScopedPayments() {
+  const ownerEmail = currentPaymentOwnerEmail();
+  return ownerEmail ? getMockPaymentsSnapshot(ownerEmail) : [];
+}
+
 export const usePaymentsStore = defineStore('payments', {
   state: () => ({
-    payments: getMockPaymentsSnapshot() as PaymentResource[],
+    // Kept as a local snapshot for compatibility with existing code. All
+    // public getters resolve the active account dynamically so switching
+    // demo accounts never leaks another user's requests/history.
+    payments: [] as PaymentResource[],
     balanceUsdt: 100,
     mode: 'deposit' as WalletFlowMode,
     method: null as PaymentMethodCode | null,
@@ -45,74 +63,75 @@ export const usePaymentsStore = defineStore('payments', {
   }),
 
   getters: {
-    latestOperations: (state) => {
+    latestOperations: () => {
       if (!canViewPayments()) {
         return [];
       }
 
-      return [...state.payments]
+      return getScopedPayments()
         .sort((left, right) => (
           new Date(right.attributes.created_at).getTime() - new Date(left.attributes.created_at).getTime()
         ))
         .slice(0, 5)
         .map(toHistoryOperationView);
     },
-    ordersActive: (state) => {
+    ordersActive: () => {
       if (!canViewPayments()) {
         return [];
       }
 
-      return [...state.payments]
+      return getScopedPayments()
         .filter((payment) => isActivePaymentStatus(payment.attributes.status))
         .sort((left, right) => (
           new Date(right.attributes.created_at).getTime() - new Date(left.attributes.created_at).getTime()
         ))
         .map(toOrderListItemView);
     },
-    ordersCompleted: (state) => {
+    ordersCompleted: () => {
       if (!canViewPayments()) {
         return [];
       }
 
-      return [...state.payments]
+      return getScopedPayments()
         .filter((payment) => !isActivePaymentStatus(payment.attributes.status))
         .sort((left, right) => (
           new Date(right.attributes.created_at).getTime() - new Date(left.attributes.created_at).getTime()
         ))
         .map(toOrderListItemView);
     },
-    historyByType: (state) => (type: PaymentTypeCode) => {
+    historyByType: () => (type: PaymentTypeCode) => {
       if (!canViewPayments()) {
         return [];
       }
 
-      return [...state.payments]
+      return getScopedPayments()
         .filter((payment) => payment.attributes.type === type)
         .sort((left, right) => (
           new Date(right.attributes.created_at).getTime() - new Date(left.attributes.created_at).getTime()
         ))
         .map(toHistoryOperationView);
     },
-    paymentById: (state) => (id: string) => {
+    paymentById: () => (id: string) => {
       if (!canViewPayments()) {
         return null;
       }
 
-      return state.payments.find((payment) => payment.id === id) ?? null;
+      return getScopedPayments().find((payment) => payment.id === id) ?? null;
     },
-    paymentDetailById: (state) => (id: string) => {
+    paymentDetailById: () => (id: string) => {
       if (!canViewPayments()) {
         return null;
       }
 
-      const payment = state.payments.find((item) => item.id === id);
+      const payment = getScopedPayments().find((item) => item.id === id);
       return payment ? toOrderDetailView(payment) : null;
     },
   },
 
   actions: {
     syncPayments() {
-      this.payments = getMockPaymentsSnapshot();
+      const ownerEmail = currentPaymentOwnerEmail();
+      this.payments = ownerEmail ? getMockPaymentsSnapshot(ownerEmail) : [];
     },
     setFlowMode(mode: WalletFlowMode) {
       this.mode = mode;
@@ -137,7 +156,8 @@ export const usePaymentsStore = defineStore('payments', {
         throw new Error('Операции доступны только авторизованным пользователям с подтвержденным KYC');
       }
 
-      const payment = createMockPaymentResource(input);
+      const ownerEmail = currentPaymentOwnerEmail();
+      const payment = createMockPaymentResource(input, ownerEmail);
       this.syncPayments();
       this.lastCreatedPaymentId = payment.id;
       this.method = input.method;
@@ -162,7 +182,8 @@ export const usePaymentsStore = defineStore('payments', {
         return null;
       }
 
-      return this.paymentById(id) ?? getMockPaymentById(id);
+      const ownerEmail = currentPaymentOwnerEmail();
+      return this.paymentById(id) ?? getMockPaymentById(id, ownerEmail);
     },
   },
 });
