@@ -1,3 +1,4 @@
+import { KYC_API_STATUS } from '@/models';
 import type {
   CheckResetPasswordCodePayload,
   CheckRegisterCodePayload,
@@ -23,6 +24,9 @@ const MOCK_CODE = '111111';
 let mockEmail = 'demo@alga.exchange';
 let mockPhone = '+7 999 123-45-67';
 let mockHasKyc = true;
+let mockKycStatus: number = KYC_API_STATUS.APPROVED;
+let mockKycBlocked = false;
+let mockIdentificationError: string | null = null;
 let tokenCounter = 1;
 
 function delay<T>(value: T): Promise<T> {
@@ -49,9 +53,9 @@ function makeProfileData(): ProfileApiData {
       full_name: 'Смирнов Алексей Игоревич',
       kyc: mockHasKyc
         ? {
-            status: 4,
-            is_blocked: false,
-            identification_error: null,
+            status: mockKycStatus,
+            is_blocked: mockKycBlocked,
+            identification_error: mockIdentificationError,
           }
         : null,
     },
@@ -124,6 +128,34 @@ export async function mockSetResetPasswordPassword(_payload: SetResetPasswordPas
 export function updateMockProfileFromKyc(phone: string) {
   mockPhone = phone;
   mockHasKyc = true;
+  mockKycStatus = KYC_API_STATUS.PENDING;
+  mockKycBlocked = false;
+  mockIdentificationError = null;
+}
+
+export function setMockKycState(state: 'unverified' | 'pending' | 'approved' | 'rejected' | 'blocked') {
+  mockKycBlocked = state === 'blocked';
+  mockIdentificationError = null;
+
+  if (state === 'unverified') {
+    mockHasKyc = false;
+    return;
+  }
+
+  mockHasKyc = true;
+
+  if (state === 'approved') {
+    mockKycStatus = KYC_API_STATUS.APPROVED;
+    return;
+  }
+
+  if (state === 'rejected') {
+    mockKycStatus = KYC_API_STATUS.REJECTED;
+    mockIdentificationError = 'Не удалось подтвердить личность';
+    return;
+  }
+
+  mockKycStatus = KYC_API_STATUS.PENDING;
 }
 
 export const mockAuthCredentials = {
