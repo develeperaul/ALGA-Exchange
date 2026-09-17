@@ -1,4 +1,4 @@
-import type { BanksResponse } from '@/models';
+import type { BankResource, BanksResponse } from '@/models';
 import sberIcon from '@/assets/wallet/rub-sber.svg';
 import tbankIcon from '@/assets/wallet/rub-tbank.svg';
 import vtbIcon from '@/assets/wallet/rub-vtb.svg';
@@ -42,16 +42,20 @@ export const mockBankCatalog: MockBankDefinition[] = [
   { id: 'mkb', label: 'МКБ', logotype: mkbIcon, direct: false },
 ];
 
-export const mockBanksResponse: BanksResponse = {
-  data: mockBankCatalog.map((bank) => ({
-    id: bank.id,
-    type: 'banks',
-    attributes: {
-      name: bank.label,
-      type: 0,
-      logotype: bank.logotype,
-    },
-  })),
+const bankResources = mockBankCatalog.map((bank): BankResource => ({
+  id: bank.id,
+  type: 'banks',
+  attributes: {
+    name: bank.label,
+    type: 0,
+    logotype: bank.logotype,
+  },
+})) as [BankResource, ...BankResource[]];
+
+export const mockBanksResponse: BanksResponse & {
+  data: [BankResource, ...BankResource[]];
+} = {
+  data: bankResources,
 };
 
 export function findMockBank(bankId: string) {
