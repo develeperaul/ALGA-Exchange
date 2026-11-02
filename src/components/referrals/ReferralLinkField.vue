@@ -1,5 +1,5 @@
 <template>
-  <section class="ref-link-field" aria-label="Реферальная ссылка">
+  <section class="ref-link-field" :aria-label="label">
     <span class="ref-link-field__text">
       {{ value }}
     </span>
@@ -32,9 +32,10 @@ import { notifySuccess } from '@/utils/notify';
 
 interface ReferralLinkFieldProps {
   value: string;
+  label?: string;
 }
 
-const props = defineProps<ReferralLinkFieldProps>();
+const props = withDefaults(defineProps<ReferralLinkFieldProps>(), { label: 'Реферальная ссылка' });
 
 defineOptions({
   name: 'ReferralLinkField',
@@ -44,7 +45,7 @@ const copied = ref(false);
 let copiedTimer: number | undefined;
 
 const copyLabel = computed(() => (
-  copied.value ? 'Скопировано' : 'Скопировать ссылку'
+  copied.value ? 'Скопировано' : props.label === 'Код приглашения' ? 'Скопировать код' : 'Скопировать ссылку'
 ));
 
 async function copy() {

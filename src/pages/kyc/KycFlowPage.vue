@@ -1,12 +1,15 @@
 <template>
   <q-page class="kyc-flow-page">
-    <component :is="currentComponent" />
-    <KycInfoSheet v-model="kycStore.infoSheetOpen" />
+    <ApiKycFlow v-if="!isMockMode" />
+    <component v-else :is="currentComponent" />
+    <KycInfoSheet v-if="isMockMode" v-model="kycStore.infoSheetOpen" />
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { isMockMode } from '@/api/config';
+import ApiKycFlow from 'components/kyc/ApiKycFlow.vue';
 import { useRoute } from 'vue-router';
 import { useKycStore } from 'stores/kyc-store';
 import KycBlockedStep from 'components/kyc/KycBlockedStep.vue';

@@ -1,4 +1,5 @@
 import type { ApiResponse } from '@/models/common/api';
+import type { LoginData } from './login';
 
 export interface SendResetPasswordCodePayload {
   email: string;
@@ -22,13 +23,8 @@ export interface ResetPasswordCodeCheckData {
   token: string;
 }
 
-export interface ResetPasswordPasswordData {
-  token?: string;
-  attributes?: {
-    token?: string;
-    expires_at?: string;
-  };
-}
+/** API Auth resource; identical to the login response contract. */
+export type ResetPasswordPasswordData = LoginData;
 
 export type ResetPasswordCodeResponse = ApiResponse<ResetPasswordCodeData>;
 export type ResetPasswordCodeCheckResponse = ApiResponse<ResetPasswordCodeCheckData>;

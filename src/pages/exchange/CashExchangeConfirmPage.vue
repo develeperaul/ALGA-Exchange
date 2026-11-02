@@ -29,7 +29,8 @@
         </ul>
       </section>
 
-      <UiButton
+      <p v-if="!isMockMode">Отправьте заявку из формы наличного обмена.</p>
+      <UiButton v-if="isMockMode"
         class="cash-exchange-confirm__submit"
         size="large"
         @click="onSubmit"
@@ -45,6 +46,7 @@ import { ref } from 'vue';
 import UiButton from 'components/ui/UiButton.vue';
 import PageHeader from 'components/PageHeader.vue';
 import SuccessOverlay from 'components/SuccessOverlay.vue';
+import { isMockMode } from '@/api/config';
 
 defineOptions({
   name: 'CashExchangeConfirmPage',
@@ -53,7 +55,7 @@ defineOptions({
 const showSuccess = ref(false);
 
 function onSubmit() {
-  showSuccess.value = true;
+  if (isMockMode) showSuccess.value = true;
 }
 </script>
 

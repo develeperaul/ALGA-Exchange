@@ -261,6 +261,8 @@ export async function mockCheckResetPasswordCode(_payload: CheckResetPasswordCod
 export async function mockSetResetPasswordPassword(_payload: SetResetPasswordPasswordPayload): Promise<ResetPasswordPasswordResponse> {
   return delay({
     data: {
+      id: 'mock-reset-session',
+      type: 'auth',
       attributes: {
         token: makeToken('reset'),
         expires_at: '2099-12-31T23:59:59Z',

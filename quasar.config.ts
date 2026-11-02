@@ -86,6 +86,9 @@ export default configure((/* ctx */) => {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
     devServer: {
+      proxy: {
+        '/api': { target: process.env.ALGA_DEV_API_TARGET || 'https://admin.aminexpay.com', changeOrigin: true },
+      },
       // https: true
       open: true, // opens browser window automatically
     },

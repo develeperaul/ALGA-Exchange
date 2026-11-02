@@ -5,13 +5,14 @@
         class="auth-screen__back"
         type="button"
         aria-label="Назад"
+        :disabled="busy"
         @click="goBack"
       >
         <UiIcon name="back" size="24" color="var(--ui-text-icon)"/>
 
       </button>
 
-      <form class="auth-screen__form" @submit.prevent="submit">
+      <form v-if="!recovery" class="auth-screen__form" @submit.prevent="submit">
         <h1 class="auth-screen__title ">
           Авторизация
         </h1>
@@ -26,7 +27,7 @@
             inputmode="email"
             autocomplete="email"
             placeholder="Введите e-mail"
-            :disabled="authStore.isLoading"
+            :disabled="busy"
           />
 
           <UiInput
@@ -37,7 +38,7 @@
             :type="isPasswordVisible ? 'text' : 'password'"
             autocomplete="current-password"
             placeholder="Введите пароль"
-            :disabled="authStore.isLoading"
+            :disabled="busy"
           >
             <template #suffix>
               <button
@@ -62,10 +63,11 @@
           class="auth-screen__button"
           size="large"
           type="submit"
-          :disabled="!canSubmit || authStore.isLoading"
+          :disabled="!canSubmit || busy"
         >
-          {{ authStore.isLoading ? 'Вход...' : 'Войти' }}
+          {{ busy ? 'Вход...' : 'Войти' }}
         </UiButton>
+        <p v-if="errorMessage" class="auth-screen__error" role="alert">{{ errorMessage }}</p>
         <div class=" tw-grid tw-gap-2 tw-mt-6">
           <button
             class="auth-screen__registration"
@@ -85,61 +87,76 @@
 
 
       </form>
+      <section v-else class="auth-screen__form" aria-label="Загрузка профиля">
+        <h1 class="auth-screen__title">Загрузка профиля</h1>
+        <p class="auth-screen__text" role="status">Сессия сохранена. Повторите загрузку профиля.</p>
+        <p v-if="errorMessage" class="auth-screen__error" role="alert">{{ errorMessage }}</p>
+        <UiButton class="auth-screen__button" type="button" :disabled="busy" @click="retryProfile">{{ busy ? 'Загрузка...' : 'Повторить' }}</UiButton>
+      </section>
     </section>
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import UiButton from 'components/ui/UiButton.vue';
 import UiInput from 'components/ui/UiInput.vue';
+import { ApiError } from '@/api/errors';
 import { useAuthStore } from 'stores/auth-store';
 
-defineOptions({
-  name: 'AuthPage',
-});
-
+defineOptions({ name: 'AuthPage' });
 const router = useRouter();
 const authStore = useAuthStore();
-
 const email = ref(authStore.email);
 const password = ref('');
 const isPasswordVisible = ref(false);
-const canSubmit = computed(() => Boolean(email.value.trim()) && Boolean(password.value));
-
-function goBack () {
-  if (router.options.history.state.back) {
-    router.back();
-    return;
-  }
-
-  void router.push('/');
+const busy = ref(false);
+const errorMessage = ref('');
+const recovery = ref(Boolean(authStore.token && authStore.status !== 'authenticated'));
+const canSubmit = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim()) && Boolean(password.value));
+let mounted = true;
+let revision = 0;
+watch(() => authStore.token, (next, previous) => {
+  if (!next && previous) { recovery.value = false; password.value = ''; errorMessage.value = 'Сессия завершилась. Войдите снова.'; }
+}, { flush: 'sync' });
+function setError(cause: unknown) {
+  if (cause instanceof Error && cause.name === 'AbortError') return;
+  errorMessage.value = cause instanceof ApiError ? cause.message : 'Не удалось выполнить запрос. Повторите попытку.';
 }
-
-function goResetPassword () {
-  void router.push('/reset-password');
-}
-
-function goRegistration () {
-  void router.push('/registration');
-}
-
-async function submit () {
-  if (!canSubmit.value) {
-    return;
-  }
-
+function goBack() { if (busy.value) return; if (router.options.history.state.back) router.back(); else void router.push('/'); }
+function goResetPassword() { if (!busy.value) void router.push('/reset-password'); }
+function goRegistration() { if (!busy.value) void router.push('/registration'); }
+async function submit() {
+  if (!canSubmit.value || busy.value || recovery.value) return;
+  const current = ++revision;
+  busy.value = true;
+  errorMessage.value = '';
   try {
-    const normalizedEmail = email.value.trim();
-
-    await authStore.login(normalizedEmail, password.value);
-    email.value = normalizedEmail;
-    void router.push('/');
-  } catch {
-    return;
-  }
+    await authStore.login(email.value.trim(), password.value);
+    if (!mounted || current !== revision) return;
+    password.value = '';
+    if (authStore.isAuthenticated) await router.push('/');
+    else { recovery.value = Boolean(authStore.token); errorMessage.value = 'Не удалось загрузить профиль.'; }
+  } catch (cause) {
+    if (!mounted || current !== revision) return;
+    if (authStore.token && authStore.status !== 'authenticated') { recovery.value = true; password.value = ''; }
+    setError(cause);
+  } finally { if (mounted && current === revision) busy.value = false; }
 }
+async function retryProfile() {
+  if (busy.value) return;
+  if (!authStore.token) { recovery.value = false; password.value = ''; errorMessage.value = 'Сессия завершилась. Войдите снова.'; return; }
+  const current = ++revision;
+  busy.value = true;
+  errorMessage.value = '';
+  try {
+    await authStore.fetchProfile();
+    if (mounted && current === revision && authStore.isAuthenticated) await router.push('/');
+  } catch (cause) { if (mounted && current === revision) setError(cause); }
+  finally { if (mounted && current === revision) busy.value = false; }
+}
+onBeforeUnmount(() => { mounted = false; revision++; password.value = ''; authStore.cancelLogin(); });
 </script>
 
 <style scoped lang="scss">
@@ -287,3 +304,5 @@ async function submit () {
   transform: translate(-50%, -50%);
 }
 </style>
+
+<style scoped>.auth-screen__error { margin-top: 16px; color: var(--ui-text-error, #b42318); text-align: center; }</style>

@@ -26,7 +26,7 @@ export interface RegisterPasswordData {
   token?: string;
   attributes?: {
     token?: string;
-    expires_at?: string;
+    expires_at?: string | null;
   };
 }
 

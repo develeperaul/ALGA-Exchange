@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { isMockMode } from '@/api/config';
 import type {
   KycCountryCode,
   KycUploadValue,
@@ -50,7 +51,7 @@ export const useKycStore = defineStore('kyc', {
 
   actions: {
     hydrate() {
-      if (typeof window === 'undefined') {
+      if (!isMockMode || typeof window === 'undefined') {
         return;
       }
 
@@ -59,7 +60,7 @@ export const useKycStore = defineStore('kyc', {
     },
 
     persistPhone() {
-      if (typeof window === 'undefined') {
+      if (!isMockMode || typeof window === 'undefined') {
         return;
       }
 

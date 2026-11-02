@@ -5,17 +5,18 @@
         class="auth-screen__back"
         type="button"
         aria-label="Назад"
+        :disabled="busy"
         @click="goBack"
       >
         <UiIcon name="back" size="24" color="var(--ui-text-icon)"/>
       </button>
 
       <form class="auth-screen__form" @submit.prevent="submit">
-        <template v-if="step === 'email'">
+        <template v-if="!recovery && step === 'email'">
           <div class=" tw-grid tw-gap-4 tw-text-center tw-mb-[30px]">
 
             <h1 class="auth-screen__title">
-              Войти
+              Регистрация
             </h1>
             <p class="auth-screen__text auth-screen__text--email">
               На указанную почту мы отправим код подтверждения
@@ -30,36 +31,40 @@
             inputmode="email"
             autocomplete="email"
             placeholder="Введите e-mail"
-            :disabled="authStore.isLoading"
+            :disabled="busy"
           />
 
           <UiButton
             class="auth-screen__button auth-screen__button--email"
             size="large"
             type="submit"
-            :disabled="!canSubmitEmail || authStore.isLoading"
+            :disabled="!canSubmitEmail || busy || sendCooldown > 0"
           >
-            {{ authStore.isLoading ? 'Отправка...' : 'Продолжить' }}
+            {{ busy ? 'Отправка...' : sendCooldown ? `Повторить через ${sendCooldown} с` : 'Продолжить' }}
           </UiButton>
+
+          <button class="auth-screen__resend" type="button" :disabled="!canUseExistingCode || busy" @click="resumeWithCode">
+            У меня уже есть код
+          </button>
 
           <div class="auth-screen__agreements">
             <UiCheckbox v-model="termsAccepted">
-              Я принимаю условия <a href="#" @click.prevent>Публичной оферты</a>
+              Я принимаю условия Публичной оферты
             </UiCheckbox>
             <UiCheckbox v-model="policyAccepted">
-              Соглашаюсь с <a href="#" @click.prevent>Политикой обработки персональных данных</a>
+              Соглашаюсь с Политикой обработки персональных данных
             </UiCheckbox>
           </div>
         </template>
 
-        <template v-else-if="step === 'code'">
+        <template v-else-if="!recovery && step === 'code'">
           <div class=" tw-grid tw-gap-4 tw-text-center tw-mb-[30px]">
 
             <h1 class="auth-screen__title">
               Введите код
             </h1>
             <p class="auth-screen__text auth-screen__text--code">
-              На почту {{ displayEmail }} <br> мы отправили код
+              На почту {{ email }} <br> мы отправили код
             </p>
           </div>
 
@@ -70,24 +75,24 @@
             inputmode="numeric"
             autocomplete="one-time-code"
             placeholder="Введите код"
-            :disabled="authStore.isLoading"
+            :disabled="busy"
           />
 
           <UiButton
             class="auth-screen__button auth-screen__button--code"
             size="large"
             type="submit"
-            :disabled="!canSubmitCode || authStore.isLoading"
+            :disabled="!canSubmitCode || busy || checkCooldown > 0"
           >
-            {{ authStore.isLoading ? 'Проверка...' : 'Продолжить' }}
+            {{ busy ? 'Проверка...' : checkCooldown ? `Повторить через ${checkCooldown} с` : 'Продолжить' }}
           </UiButton>
 
-          <button class="auth-screen__resend " type="button">
-            Не пришел код?
+          <button class="auth-screen__resend " type="button" :disabled="busy || sendCooldown > 0" @click="resendCode">
+            {{ sendCooldown ? `Повторить через ${sendCooldown} с` : 'Не пришел код? Отправить повторно' }}
           </button>
         </template>
 
-        <template v-else>
+        <template v-else-if="!recovery">
           <div class=" tw-grid tw-gap-4 tw-text-center tw-mb-6">
 
             <h1 class="auth-screen__title ">
@@ -103,7 +108,7 @@
               :type="isPasswordVisible ? 'text' : 'password'"
               autocomplete="new-password"
               placeholder="Введите пароль"
-              :disabled="authStore.isLoading"
+              :disabled="busy"
             >
               <template #suffix>
                 <button
@@ -129,7 +134,7 @@
               :type="isPasswordRepeatVisible ? 'text' : 'password'"
               autocomplete="new-password"
               placeholder="Повторите пароль"
-              :disabled="authStore.isLoading"
+              :disabled="busy"
             >
               <template #suffix>
                 <button
@@ -149,111 +154,186 @@
             </UiInput>
           </div>
 
+          <div class="auth-screen__agreements">
+            <UiCheckbox v-model="termsAccepted">
+              Я принимаю условия Публичной оферты
+            </UiCheckbox>
+            <UiCheckbox v-model="policyAccepted">
+              Соглашаюсь с Политикой обработки персональных данных
+            </UiCheckbox>
+          </div>
+
           <UiButton
             class="auth-screen__button auth-screen__button--password"
             size="large"
             type="submit"
-            :disabled="!canSubmitPassword || authStore.isLoading"
+            :disabled="!canSubmitPassword || busy"
           >
-            {{ authStore.isLoading ? 'Сохранение...' : 'Продолжить' }}
+            {{ busy ? 'Сохранение...' : 'Продолжить' }}
           </UiButton>
         </template>
+        <p v-if="errorMessage" class="auth-screen__error" role="alert">{{ errorMessage }}</p>
+        <p v-if="recovery" class="auth-screen__text" role="status">Сессия сохранена. Загрузите профиль.</p>
+        <UiButton v-if="recovery" type="button" class="auth-screen__button" :disabled="busy" @click="retryProfile">Повторить загрузку профиля</UiButton>
       </form>
     </section>
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import UiButton from 'components/ui/UiButton.vue';
 import UiCheckbox from 'components/ui/UiCheckbox.vue';
 import UiInput from 'components/ui/UiInput.vue';
+import { ApiError } from '@/api/errors';
 import { useAuthStore } from 'stores/auth-store';
 
+defineOptions({ name: 'RegPage' });
 type AuthStep = 'email' | 'code' | 'password';
-
-defineOptions({
-  name: 'RegPage',
-});
-
 const router = useRouter();
 const authStore = useAuthStore();
-
-const mockEmail = 'pochta123@mail.ru';
-
 const step = ref<AuthStep>('email');
-const email = ref(authStore.email);
+const email = ref('');
 const code = ref('');
 const password = ref('');
 const passwordRepeat = ref('');
-const termsAccepted = ref(true);
-const policyAccepted = ref(true);
+const termsAccepted = ref(false);
+const policyAccepted = ref(false);
 const isPasswordVisible = ref(false);
 const isPasswordRepeatVisible = ref(false);
-
-const displayEmail = computed(() => email.value.trim() || mockEmail);
-const canSubmitEmail = computed(() => Boolean(email.value.trim()) && termsAccepted.value && policyAccepted.value);
+const busy = ref(false);
+const errorMessage = ref('');
+const recovery = ref(Boolean(authStore.token && authStore.status !== 'authenticated'));
+const sendCooldown = ref(0);
+const checkCooldown = ref(0);
+let cooldownTimer: ReturnType<typeof setInterval> | undefined;
+let revision = 0;
+let mounted = true;
+const canUseExistingCode = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim()));
+const canSubmitEmail = computed(() => canUseExistingCode.value && termsAccepted.value && policyAccepted.value);
 const canSubmitCode = computed(() => Boolean(code.value.trim()));
-const canSubmitPassword = computed(() => Boolean(password.value) && password.value === passwordRepeat.value);
+const canSubmitPassword = computed(() => password.value.length >= 6 && password.value === passwordRepeat.value && termsAccepted.value && policyAccepted.value);
 
-function goBack () {
-  if (step.value === 'password') {
+function clearSecrets() { code.value = ''; password.value = ''; passwordRepeat.value = ''; }
+function invalidate() { revision++; errorMessage.value = ''; clearSecrets(); authStore.resetRegistration(); }
+function resetAfterSessionLoss() {
+  invalidate();
+  step.value = 'email';
+  recovery.value = false;
+  busy.value = false;
+  errorMessage.value = 'Сессия завершилась. Начните регистрацию заново.';
+}
+function setError(cause: unknown, action?: 'send' | 'check') {
+  if (cause instanceof Error && cause.name === 'AbortError') return;
+  errorMessage.value = cause instanceof ApiError ? cause.message : 'Не удалось выполнить запрос. Повторите попытку.';
+  if (action && cause instanceof ApiError && cause.status === 429 && cause.retryAfter) {
+    const seconds = Number(cause.retryAfter);
+    const remaining = Number.isFinite(seconds) ? seconds : (Date.parse(cause.retryAfter) - Date.now()) / 1000;
+    if (Number.isFinite(remaining) && remaining > 0) startCooldown(action, Math.ceil(remaining));
+  }
+}
+function startCooldown(action: 'send' | 'check', seconds: number) {
+  const target = action === 'send' ? sendCooldown : checkCooldown;
+  target.value = Math.max(target.value, seconds);
+  if (cooldownTimer) return;
+  cooldownTimer = setInterval(() => {
+    sendCooldown.value = Math.max(0, sendCooldown.value - 1);
+    checkCooldown.value = Math.max(0, checkCooldown.value - 1);
+    if (!sendCooldown.value && !checkCooldown.value && cooldownTimer) {
+      clearInterval(cooldownTimer);
+      cooldownTimer = undefined;
+    }
+  }, 1000);
+}
+watch(email, (next, previous) => {
+  if (next !== previous && step.value === 'email') { invalidate(); authStore.setRegistrationEmail(next); }
+});
+watch(() => authStore.token, (next, previous) => {
+  if (!next && previous) resetAfterSessionLoss();
+}, { flush: 'sync' });
+function goBack() {
+  if (busy.value) return;
+  if (recovery.value) { void router.push('/'); return; }
+  if (step.value !== 'email') { invalidate(); step.value = 'email'; return; }
+  if (router.options.history.state.back) router.back(); else void router.push('/auth');
+}
+async function resumeWithCode() {
+  if (busy.value || recovery.value || step.value !== 'email' || !canUseExistingCode.value) return;
+  const current = ++revision;
+  busy.value = true;
+  errorMessage.value = '';
+  try {
+    const normalized = email.value.trim().toLowerCase();
+    await authStore.resumeRegistration(normalized);
+    if (!mounted || current !== revision) return;
+    email.value = normalized;
     step.value = 'code';
-    return;
-  }
-
-  if (step.value === 'code') {
-    step.value = 'email';
-    return;
-  }
-
-  if (router.options.history.state.back) {
-    router.back();
-    return;
-  }
-
-  void router.push('/auth');
+  } catch (cause) { if (mounted && current === revision) setError(cause); }
+  finally { if (mounted && current === revision) busy.value = false; }
 }
-
-async function submit () {
-  if (step.value === 'email' && canSubmitEmail.value) {
-    try {
-      const normalizedEmail = email.value.trim();
-
-      await authStore.sendRegisterCode(normalizedEmail);
-      email.value = normalizedEmail;
+async function submit() {
+  if (busy.value || recovery.value) return;
+  if (step.value === 'email' && (!canSubmitEmail.value || sendCooldown.value > 0)) return;
+  if (step.value === 'code' && (!canSubmitCode.value || checkCooldown.value > 0)) return;
+  if (step.value === 'password' && !canSubmitPassword.value) return;
+  const action = step.value === 'email' ? 'send' : step.value === 'code' ? 'check' : undefined;
+  const current = ++revision;
+  busy.value = true;
+  errorMessage.value = '';
+  try {
+    if (step.value === 'email' && canSubmitEmail.value) {
+      const normalized = email.value.trim().toLowerCase();
+      await authStore.sendRegisterCode(normalized);
+      if (!mounted || current !== revision) return;
+      email.value = normalized;
       step.value = 'code';
-    } catch {
-      return;
-    }
-
-    return;
-  }
-
-  if (step.value === 'code' && canSubmitCode.value) {
-    try {
-      const normalizedCode = code.value.trim();
-
-      await authStore.checkRegisterCode(normalizedCode);
-      code.value = normalizedCode;
+    } else if (step.value === 'code' && canSubmitCode.value) {
+      await authStore.checkRegisterCode(code.value.trim());
+      if (!mounted || current !== revision) return;
+      code.value = '';
       step.value = 'password';
-    } catch {
-      return;
-    }
-
-    return;
-  }
-
-  if (step.value === 'password' && canSubmitPassword.value) {
-    try {
+    } else if (step.value === 'password' && canSubmitPassword.value) {
       await authStore.setRegisterPassword(password.value);
-      void router.push('/');
-    } catch {
-      return;
+      if (!mounted || current !== revision) return;
+      clearSecrets();
+      if (authStore.isAuthenticated) await router.push('/');
+      else { recovery.value = Boolean(authStore.token); errorMessage.value = 'Не удалось загрузить профиль.'; }
     }
-  }
+  } catch (cause) {
+    if (!mounted || current !== revision) return;
+    if (authStore.token && authStore.status !== 'authenticated') { recovery.value = true; clearSecrets(); }
+    if (step.value === 'password' && !authStore.verificationToken && !authStore.token) {
+      resetAfterSessionLoss();
+    }
+    setError(cause, action);
+  } finally { if (mounted && current === revision) busy.value = false; }
 }
+async function resendCode() {
+  if (busy.value || sendCooldown.value > 0 || step.value !== 'code') return;
+  const current = ++revision;
+  busy.value = true;
+  errorMessage.value = '';
+  clearSecrets();
+  try {
+    await authStore.sendRegisterCode(email.value);
+    if (!mounted || current !== revision) return;
+  } catch (cause) { if (mounted && current === revision) setError(cause, 'send'); }
+  finally { if (mounted && current === revision) busy.value = false; }
+}
+async function retryProfile() {
+  if (busy.value) return;
+  if (!authStore.token) { resetAfterSessionLoss(); return; }
+  const current = ++revision;
+  busy.value = true;
+  errorMessage.value = '';
+  try {
+    await authStore.fetchProfile();
+    if (mounted && current === revision && authStore.isAuthenticated) await router.push('/');
+  } catch (cause) { if (mounted && current === revision) setError(cause); }
+  finally { if (mounted && current === revision) busy.value = false; }
+}
+onBeforeUnmount(() => { mounted = false; revision++; clearSecrets(); authStore.resetRegistration(); if (cooldownTimer) clearInterval(cooldownTimer); });
 </script>
 
 <style scoped lang="scss">
@@ -427,3 +507,5 @@ async function submit () {
   opacity: 0;
 }
 </style>
+
+<style scoped>.auth-screen__error { margin-top: 16px; color: var(--ui-text-error, #b42318); text-align: center; } .auth-screen__resend:disabled { cursor: default; opacity: .6; }</style>

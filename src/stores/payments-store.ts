@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { isMockMode } from '@/api/config';
 import type {
   CreateMockPaymentInput,
   PaymentMethodCode,
@@ -23,7 +24,7 @@ type WalletFlowMode = 'deposit' | 'withdraw';
 function currentPaymentOwnerEmail() {
   const authStore = useAuthStore();
 
-  if (!authStore.isAuthenticated) {
+  if (!isMockMode || !authStore.isAuthenticated) {
     return '';
   }
 
@@ -37,7 +38,7 @@ function canViewPayments() {
 function canCreatePayments() {
   const authStore = useAuthStore();
 
-  return authStore.isAuthenticated
+  return isMockMode && authStore.isAuthenticated
     && authStore.verificationStatus === 'approved'
     && !authStore.kycBlocked;
 }
@@ -53,7 +54,7 @@ export const usePaymentsStore = defineStore('payments', {
     // public getters resolve the active account dynamically so switching
     // demo accounts never leaks another user's requests/history.
     payments: [] as PaymentResource[],
-    balanceUsdt: 100,
+    balanceUsdt: isMockMode ? 100 : 0,
     mode: 'deposit' as WalletFlowMode,
     method: null as PaymentMethodCode | null,
     bankId: '',

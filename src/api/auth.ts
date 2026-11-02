@@ -7,45 +7,50 @@ import type {
   SetResetPasswordPasswordPayload,
   SetRegisterPasswordPayload,
 } from '@/models';
-import {
-  mockCheckRegisterCode,
-  mockCheckResetPasswordCode,
-  mockGetProfile,
-  mockLogin,
-  mockSendRegisterCode,
-  mockSendResetPasswordCode,
-  mockSetRegisterPassword,
-  mockSetResetPasswordPassword,
-} from '@/mocks/auth';
+import { isMockMode } from './config';
+import { requestJson } from './client';
+import type {
+  LoginResponse, ProfileResponse, RegisterCodeResponse, RegisterCodeCheckResponse,
+  RegisterPasswordResponse, ResetPasswordCodeResponse, ResetPasswordCodeCheckResponse,
+  ResetPasswordPasswordResponse,
+} from '@/models';
 
-export function login(payload: LoginPayload) {
-  return mockLogin(payload);
+export async function login(payload: LoginPayload, signal?: AbortSignal) {
+  if (isMockMode) return (await import('@/mocks/auth')).mockLogin(payload);
+  return requestJson<LoginResponse>('api/auth/login', { method: 'post', json: payload, signal });
 }
 
-export function getProfile() {
-  return mockGetProfile();
+export async function getProfile(signal?: AbortSignal): Promise<ProfileResponse> {
+  if (isMockMode) return (await import('@/mocks/auth')).mockGetProfile();
+  return requestJson<ProfileResponse>('api/profile/me', { signal }, true);
 }
 
-export function sendRegisterCode(payload: SendRegisterCodePayload) {
-  return mockSendRegisterCode(payload);
+export async function sendRegisterCode(payload: SendRegisterCodePayload, signal?: AbortSignal) {
+  if (isMockMode) return (await import('@/mocks/auth')).mockSendRegisterCode(payload);
+  return requestJson<RegisterCodeResponse>('api/auth/register/codes', { method: 'post', json: payload, signal });
 }
 
-export function checkRegisterCode(payload: CheckRegisterCodePayload) {
-  return mockCheckRegisterCode(payload);
+export async function checkRegisterCode(payload: CheckRegisterCodePayload, signal?: AbortSignal) {
+  if (isMockMode) return (await import('@/mocks/auth')).mockCheckRegisterCode(payload);
+  return requestJson<RegisterCodeCheckResponse>('api/auth/register/codes/check', { method: 'post', json: payload, signal });
 }
 
-export function setRegisterPassword(payload: SetRegisterPasswordPayload) {
-  return mockSetRegisterPassword(payload);
+export async function setRegisterPassword(payload: SetRegisterPasswordPayload, signal?: AbortSignal) {
+  if (isMockMode) return (await import('@/mocks/auth')).mockSetRegisterPassword(payload);
+  return requestJson<RegisterPasswordResponse>('api/auth/register/passwords', { method: 'post', json: payload, signal });
 }
 
-export function sendResetPasswordCode(payload: SendResetPasswordCodePayload) {
-  return mockSendResetPasswordCode(payload);
+export async function sendResetPasswordCode(payload: SendResetPasswordCodePayload, signal?: AbortSignal) {
+  if (isMockMode) return (await import('@/mocks/auth')).mockSendResetPasswordCode(payload);
+  return requestJson<ResetPasswordCodeResponse>('api/auth/reset-passwords/codes', { method: 'post', json: payload, signal });
 }
 
-export function checkResetPasswordCode(payload: CheckResetPasswordCodePayload) {
-  return mockCheckResetPasswordCode(payload);
+export async function checkResetPasswordCode(payload: CheckResetPasswordCodePayload, signal?: AbortSignal) {
+  if (isMockMode) return (await import('@/mocks/auth')).mockCheckResetPasswordCode(payload);
+  return requestJson<ResetPasswordCodeCheckResponse>('api/auth/reset-passwords/codes/check', { method: 'post', json: payload, signal });
 }
 
-export function setResetPasswordPassword(payload: SetResetPasswordPasswordPayload) {
-  return mockSetResetPasswordPassword(payload);
+export async function setResetPasswordPassword(payload: SetResetPasswordPasswordPayload, signal?: AbortSignal): Promise<ResetPasswordPasswordResponse> {
+  if (isMockMode) return (await import('@/mocks/auth')).mockSetResetPasswordPassword(payload);
+  return requestJson<ResetPasswordPasswordResponse>('api/auth/reset-passwords', { method: 'post', json: payload, signal });
 }

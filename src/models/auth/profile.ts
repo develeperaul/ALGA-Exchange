@@ -21,11 +21,21 @@ export interface ProfileKyc {
 }
 
 export interface ProfileMeta {
-  has_kyc: boolean;
+  has_kyc?: boolean;
   has_phone: boolean;
 }
 
+export interface ProviderKyc {
+  provider: 'antarctic';
+  phone_set: boolean;
+  verification_level: number;
+  kyc_status: 'none' | 'pending' | 'approved' | 'rejected';
+  is_verified: boolean;
+  last_synced_at: string | null;
+}
+
 export interface ProfileAttributes {
+  provider_kyc?: ProviderKyc | null;
   email?: string;
   phone?: string | null;
   kyc?: ProfileKyc | null;

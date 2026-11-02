@@ -7,6 +7,7 @@ import {
 } from 'vue-router';
 import { useAuthStore } from 'stores/auth-store';
 import routes from './routes';
+import { isMockMode } from '@/api/config';
 
 /*
  * If not building with SSR mode, you can
@@ -33,22 +34,13 @@ export default route(function ({ store }) {
   });
 
   Router.beforeEach(async (to) => {
+    if (!isMockMode && to.meta.mockOnly) return '/unavailable';
     const authStore = useAuthStore(store);
     const requiresAuth = Boolean(to.meta.requiresAuth);
     const requiresApprovedKyc = Boolean(to.meta.requiresApprovedKyc);
     const isProtectedRoute = requiresAuth || requiresApprovedKyc;
 
-    if (isProtectedRoute && !authStore.isAuthenticated) {
-      return '/auth';
-    }
-
-    // The token is restored synchronously, while the profile is loaded
-    // asynchronously. Protected routes must wait for the profile before
-    // making an authorization/KYC decision after a page refresh.
-    if (isProtectedRoute && authStore.isAuthenticated && !authStore.profile) {
-      await authStore.fetchProfile();
-    }
-
+    await authStore.restore();
     if (isProtectedRoute && !authStore.isAuthenticated) {
       return '/auth';
     }

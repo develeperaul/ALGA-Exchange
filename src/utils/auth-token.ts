@@ -1,22 +1,9 @@
-const AUTH_TOKEN_STORAGE_KEY = 'auth_token';
+import { getSessionScope, readSession, replaceSession } from '@/api/session';
 
+/** Legacy callers use the isolated, versioned session; auth_token is never read. */
 export function getStoredToken() {
-  if (typeof window === 'undefined') {
-    return '';
-  }
-
-  return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY) || '';
+  return (getSessionScope().session || readSession())?.token || '';
 }
-
 export function setStoredToken(token: string) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  if (token) {
-    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
-    return;
-  }
-
-  localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  replaceSession(token.trim() ? { token, expires_at: null } : null);
 }

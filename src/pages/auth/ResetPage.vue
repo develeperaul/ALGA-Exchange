@@ -10,7 +10,7 @@
         <UiIcon name="back" size="24" color="var(--ui-text-icon)"/>
       </button>
 
-      <form class="auth-screen__form" @submit.prevent="submit">
+      <form v-if="!recovery" class="auth-screen__form" @submit.prevent="submit">
         <template v-if="step === 'email'">
           <div class=" tw-text-center tw-mb-[30px]">
 
@@ -30,26 +30,18 @@
             inputmode="email"
             autocomplete="email"
             placeholder="Введите e-mail"
-            :disabled="isLoading"
+            :disabled="busy"
           />
 
           <UiButton
             class="auth-screen__button auth-screen__button--email"
             size="large"
             type="submit"
-            :disabled="!canSubmitEmail || isLoading"
+            :disabled="!canSubmitEmail || busy || sendCooldown > 0"
           >
-            {{ isLoading ? 'Отправка...' : 'Продолжить' }}
+            {{ busy ? 'Отправка...' : sendCooldown ? `Повторить через ${sendCooldown} с` : 'Продолжить' }}
           </UiButton>
 
-          <div class="auth-screen__agreements">
-            <UiCheckbox v-model="termsAccepted">
-              Я принимаю условия <a href="#" @click.prevent>Публичной оферты</a>
-            </UiCheckbox>
-            <UiCheckbox v-model="policyAccepted">
-              Соглашаюсь с <a href="#" @click.prevent>Политикой обработки персональных данных</a>
-            </UiCheckbox>
-          </div>
         </template>
 
         <template v-else-if="step === 'code'">
@@ -70,20 +62,20 @@
             inputmode="numeric"
             autocomplete="one-time-code"
             placeholder="Введите код"
-            :disabled="isLoading"
+            :disabled="busy"
           />
 
           <UiButton
             class="auth-screen__button auth-screen__button--code"
             size="large"
             type="submit"
-            :disabled="!canSubmitCode || isLoading"
+            :disabled="!canSubmitCode || busy || checkCooldown > 0"
           >
-            {{ isLoading ? 'Проверка...' : 'Продолжить' }}
+            {{ busy ? 'Проверка...' : checkCooldown ? `Повторить через ${checkCooldown} с` : 'Продолжить' }}
           </UiButton>
 
-          <button class="auth-screen__resend" type="button">
-            Не пришел код?
+          <button class="auth-screen__resend" type="button" :disabled="busy || sendCooldown > 0" @click="resendCode">
+            {{ sendCooldown ? `Повторить отправку через ${sendCooldown} с` : 'Не пришёл код? Отправить повторно' }}
           </button>
         </template>
 
@@ -103,7 +95,7 @@
               :type="isPasswordVisible ? 'text' : 'password'"
               autocomplete="new-password"
               placeholder="Введите пароль"
-              :disabled="isLoading"
+              :disabled="busy"
             >
               <template #suffix>
                 <button
@@ -129,7 +121,7 @@
               :type="isPasswordRepeatVisible ? 'text' : 'password'"
               autocomplete="new-password"
               placeholder="Повторите пароль"
-              :disabled="isLoading"
+              :disabled="busy"
             >
               <template #suffix>
                 <button
@@ -153,134 +145,160 @@
             class="auth-screen__button auth-screen__button--password"
             size="large"
             type="submit"
-            :disabled="!canSubmitPassword || isLoading"
+            :disabled="!canSubmitPassword || busy"
           >
-            {{ isLoading ? 'Сохранение...' : 'Продолжить' }}
+            {{ busy ? 'Сохранение...' : 'Сохранить пароль' }}
           </UiButton>
         </template>
-
-
+        <p v-if="errorMessage" class="auth-screen__error" role="alert">{{ errorMessage }}</p>
       </form>
+      <section v-else class="auth-screen__form" aria-label="Загрузка профиля">
+        <h1 class="auth-screen__title">Пароль сохранён</h1>
+        <p class="auth-screen__text" role="status">Повторите загрузку профиля для входа.</p>
+        <p v-if="errorMessage" class="auth-screen__error" role="alert">{{ errorMessage }}</p>
+        <UiButton class="auth-screen__button auth-screen__button--email" type="button" :disabled="busy" @click="retryProfile">{{ busy ? 'Загрузка...' : 'Повторить' }}</UiButton>
+      </section>
     </section>
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import UiButton from 'components/ui/UiButton.vue';
-import UiCheckbox from 'components/ui/UiCheckbox.vue';
 import UiInput from 'components/ui/UiInput.vue';
-import {
-  checkResetPasswordCode,
-  sendResetPasswordCode,
-  setResetPasswordPassword,
-} from '@/api/auth';
+import { ApiError } from '@/api/errors';
+import { useAuthStore } from 'stores/auth-store';
 
 type AuthStep = 'email' | 'code' | 'password';
-
-defineOptions({
-  name: 'ResetPage',
-});
-
+defineOptions({ name: 'ResetPage' });
 const router = useRouter();
-
-const mockEmail = 'pochta123@mail.ru';
-
+const authStore = useAuthStore();
 const step = ref<AuthStep>('email');
 const email = ref('');
 const code = ref('');
-const resetToken = ref('');
 const password = ref('');
 const passwordRepeat = ref('');
-const termsAccepted = ref(true);
-const policyAccepted = ref(true);
 const isPasswordVisible = ref(false);
 const isPasswordRepeatVisible = ref(false);
-const isLoading = ref(false);
-
-const displayEmail = computed(() => email.value.trim() || mockEmail);
-const canSubmitEmail = computed(() => Boolean(email.value.trim()) && termsAccepted.value && policyAccepted.value);
-const canSubmitCode = computed(() => Boolean(code.value.trim()));
-const canSubmitPassword = computed(() => Boolean(password.value) && password.value === passwordRepeat.value);
-
+const busy = ref(false);
+const errorMessage = ref('');
+const recovery = ref(Boolean(authStore.token && authStore.status !== 'authenticated'));
+const sendCooldown = ref(0);
+const checkCooldown = ref(0);
+let cooldownTimer: ReturnType<typeof setInterval> | undefined;
+let mounted = true;
+let revision = 0;
+const displayEmail = computed(() => authStore.resetEmail || email.value.trim());
+const canSubmitEmail = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim()));
+const canSubmitCode = computed(() => Boolean(code.value.trim()) && authStore.resetCodeSent);
+const canSubmitPassword = computed(() => password.value.length >= 6 && password.value === passwordRepeat.value && Boolean(authStore.resetVerificationToken));
+function clearSecrets() { code.value = ''; password.value = ''; passwordRepeat.value = ''; }
+function invalidate() { revision++; clearSecrets(); errorMessage.value = ''; authStore.resetPasswordFlow(); }
+function setCooldown(action: 'send' | 'check', seconds: number) {
+  const target = action === 'send' ? sendCooldown : checkCooldown;
+  target.value = Math.max(target.value, seconds);
+  if (cooldownTimer) return;
+  cooldownTimer = setInterval(() => {
+    sendCooldown.value = Math.max(0, sendCooldown.value - 1);
+    checkCooldown.value = Math.max(0, checkCooldown.value - 1);
+    if (!sendCooldown.value && !checkCooldown.value && cooldownTimer) {
+      clearInterval(cooldownTimer);
+      cooldownTimer = undefined;
+    }
+  }, 1000);
+}
+function setError(cause: unknown, action?: 'send' | 'check') {
+  if (cause instanceof Error && cause.name === 'AbortError') return;
+  errorMessage.value = cause instanceof ApiError ? cause.message : 'Не удалось выполнить запрос. Повторите попытку.';
+  if (action && cause instanceof ApiError && cause.status === 429 && cause.retryAfter) {
+    const seconds = Number(cause.retryAfter);
+    const remaining = Number.isFinite(seconds) ? seconds : (Date.parse(cause.retryAfter) - Date.now()) / 1000;
+    if (Number.isFinite(remaining) && remaining > 0) setCooldown(action, Math.ceil(remaining));
+  }
+}
+watch(email, () => { if (step.value === 'email') invalidate(); });
+watch(() => authStore.token, (next, previous) => {
+  if (!next && previous) {
+    recovery.value = false;
+    invalidate(); step.value = 'email'; busy.value = false;
+    errorMessage.value = 'Сессия завершилась. Начните восстановление заново.';
+  }
+}, { flush: 'sync' });
 function goBack() {
-  console.log('back');
-
-  if (step.value === 'password') {
-    step.value = 'code';
-    return;
-  }
-
-  if (step.value === 'code') {
-    step.value = 'email';
-    return;
-  }
-
-  if (router.options.history.state.back) {
-    router.back();
-    return;
-  }
-
-  void router.push('/auth');
+  if (busy.value) return;
+  if (recovery.value) { void router.push('/'); return; }
+  if (step.value !== 'email') { invalidate(); step.value = 'email'; return; }
+  invalidate();
+  if (router.options.history.state.back) router.back(); else void router.push('/auth');
 }
-
-async function submit () {
-  if (step.value === 'email' && canSubmitEmail.value) {
-    try {
-      const normalizedEmail = email.value.trim();
-
-      isLoading.value = true;
-      await sendResetPasswordCode({ email: normalizedEmail });
-      email.value = normalizedEmail;
+async function submit() {
+  if (busy.value) return;
+  if (step.value === 'email' && (!canSubmitEmail.value || sendCooldown.value)) return;
+  if (step.value === 'code' && (!canSubmitCode.value || checkCooldown.value)) return;
+  if (step.value === 'password' && !canSubmitPassword.value) return;
+  const action = step.value === 'email' ? 'send' : step.value === 'code' ? 'check' : undefined;
+  const current = ++revision;
+  busy.value = true;
+  errorMessage.value = '';
+  try {
+    if (step.value === 'email') {
+      const normalized = email.value.trim().toLowerCase();
+      await authStore.sendResetCode(normalized);
+      if (!mounted || current !== revision) return;
       step.value = 'code';
-    } catch {
-      return;
-    } finally {
-      isLoading.value = false;
-    }
-
-    return;
-  }
-
-  if (step.value === 'code' && canSubmitCode.value) {
-    try {
-      const normalizedCode = code.value.trim();
-
-      isLoading.value = true;
-      const response = await checkResetPasswordCode({
-        email: email.value,
-        code: normalizedCode,
-      });
-
-      code.value = normalizedCode;
-      resetToken.value = response.data.token;
+    } else if (step.value === 'code') {
+      await authStore.checkResetCode(code.value.trim());
+      if (!mounted || current !== revision) return;
+      code.value = '';
       step.value = 'password';
-    } catch {
-      return;
-    } finally {
-      isLoading.value = false;
+    } else {
+      await authStore.setResetPassword(password.value);
+      if (!mounted || current !== revision) return;
+      clearSecrets();
+      if (authStore.isAuthenticated) await router.replace('/');
+      else { recovery.value = Boolean(authStore.token); errorMessage.value = 'Не удалось загрузить профиль.'; }
     }
-
-    return;
-  }
-
-  if (step.value === 'password' && canSubmitPassword.value) {
-    try {
-      isLoading.value = true;
-      await setResetPasswordPassword({
-        token: resetToken.value,
-        password: password.value,
-      });
-
-      void router.push('/');
-    } catch {
-      return;
-    } finally {
-      isLoading.value = false;
-    }
-  }
+  } catch (cause) {
+    if (!mounted || current !== revision) return;
+    if (authStore.token && authStore.status !== 'authenticated') {
+      recovery.value = true; clearSecrets(); setError(cause);
+    } else if (step.value === 'password' && !authStore.resetVerificationToken) {
+      invalidate(); step.value = 'email';
+      errorMessage.value = 'Подтверждение истекло. Запросите новый код.';
+    } else setError(cause, action);
+  } finally { if (mounted && current === revision) busy.value = false; }
 }
+async function resendCode() {
+  if (busy.value || sendCooldown.value || step.value !== 'code') return;
+  const current = ++revision;
+  busy.value = true;
+  errorMessage.value = '';
+  clearSecrets();
+  try { await authStore.sendResetCode(email.value); }
+  catch (cause) {
+    if (mounted && current === revision) {
+      if (!authStore.resetCodeSent) step.value = 'email';
+      setError(cause, 'send');
+    }
+  }
+  finally { if (mounted && current === revision) busy.value = false; }
+}
+async function retryProfile() {
+  if (busy.value) return;
+  if (!authStore.token) { recovery.value = false; step.value = 'email'; errorMessage.value = 'Сессия завершилась. Начните восстановление заново.'; return; }
+  const current = ++revision;
+  busy.value = true; errorMessage.value = '';
+  try {
+    await authStore.fetchProfile();
+    if (mounted && current === revision && authStore.isAuthenticated) await router.replace('/');
+  } catch (cause) { if (mounted && current === revision) setError(cause); }
+  finally { if (mounted && current === revision) busy.value = false; }
+}
+onBeforeUnmount(() => {
+  mounted = false; revision++; clearSecrets(); authStore.resetPasswordFlow();
+  if (cooldownTimer) clearInterval(cooldownTimer);
+});
 </script>
 
 <style scoped lang="scss">
@@ -408,12 +426,10 @@ async function submit () {
   margin-top: 40px;
 }
 
-.auth-screen__agreements {
-  width: 100%;
-  margin-top: 84px;
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
+.auth-screen__error {
+  margin: 20px 0 0;
+  color: var(--q-negative);
+  white-space: pre-line;
 }
 
 .auth-screen__resend {
@@ -429,6 +445,8 @@ async function submit () {
   font-weight: 400;
   cursor: pointer;
 }
+
+.auth-screen__resend:disabled { cursor: default; opacity: .65; }
 
 .auth-screen__visibility {
   width: 24px;

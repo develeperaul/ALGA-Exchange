@@ -12,6 +12,8 @@
           label="Страна"
           placeholder="Введите страну"
         />
+        <UiInput v-if="!isMockMode" v-model="form.telegram" name="invoice-telegram" label="Telegram-никнейм" placeholder="@username" />
+        <p v-if="!isMockMode && options" class="invoice-field__text">Минимальная сумма: {{ options.invoice_min }} USDT</p>
         <div class="invoice-field">
           <span class="invoice-field__label">Сумма инвойса</span>
           <div class="invoice-field__amount">
@@ -38,12 +40,17 @@
           </span>
         </div>
 
+        <p v-if="!isMockMode && optionsError" role="alert">{{ optionsError }}</p>
+        <p v-if="!isMockMode && submitError" role="alert">{{ submitError }}</p>
+        <p v-if="!isMockMode && uncertain" role="alert">Результат отправки неизвестен. Не отправляйте заявку повторно; уточните её у менеджера.</p>
+        <p v-if="!isMockMode && submissionMessage" role="status">{{ submissionMessage }}</p>
         <UiButton
           class="invoice-form__submit"
           size="large"
+          :disabled="!isMockMode && (submitting || uncertain || !options || !!submissionMessage)"
           @click="onSubmit"
         >
-          Отправить
+          {{ submitting ? 'Отправка…' : 'Отправить' }}
         </UiButton>
       </section>
     </main>
@@ -51,27 +58,74 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted, onUnmounted } from 'vue';
 import UiButton from 'components/ui/UiButton.vue';
 import UiInput from 'components/ui/UiInput.vue';
 import PageHeader from 'components/PageHeader.vue';
 import SuccessOverlay from 'components/SuccessOverlay.vue';
+import { isMockMode } from '@/api/config';
+import { createInvoicePayout, fetchPayoutOptions, isAmbiguousPayoutFailure, validAmount, type PayoutOptions } from '@/api/operations';
+import { useAuthStore } from '@/stores/auth-store';
+import { getSessionScope, isCurrentSession, onSessionChange } from '@/api/session';
 
 defineOptions({
   name: 'InvoicePage',
 });
 
 const showSuccess = ref(false);
+const auth = useAuthStore();
+const options = ref<PayoutOptions | null>(null);
+const optionsError = ref('');
+const submitError = ref('');
+const submissionMessage = ref('');
+const submitting = ref(false);
+const uncertain = ref(false);
+let disposed = false;
+const current = (epoch: number) => !disposed && isCurrentSession(epoch);
+onMounted(async () => {
+  if (isMockMode) return;
+  const epoch = getSessionScope().epoch;
+  try { const result = await fetchPayoutOptions(); if (current(epoch)) options.value = result; }
+  catch (error) { if (current(epoch)) optionsError.value = error instanceof Error ? error.message : 'Не удалось загрузить условия'; }
+});
 
 const form = reactive({
   country: '',
   description: '',
   amount: '',
+  telegram: '',
 });
+function clearSensitiveState() {
+  form.country = ''; form.description = ''; form.amount = ''; form.telegram = '';
+  options.value = null; optionsError.value = ''; submitError.value = '';
+  submissionMessage.value = ''; submitting.value = false; uncertain.value = false;
+}
+const unsubscribe = onSessionChange(() => { if (!isMockMode) clearSensitiveState(); });
+onUnmounted(() => { disposed = true; unsubscribe(); if (!isMockMode) clearSensitiveState(); });
 
-function onSubmit() {
-  console.log('Invoice submitted', form);
-  showSuccess.value = true;
+async function onSubmit() {
+  if (isMockMode) { showSuccess.value = true; return; }
+  if (disposed || submitting.value || uncertain.value || submissionMessage.value) return;
+  submitError.value = '';
+  if (!auth.isAuthenticated || !options.value) {
+    submitError.value = 'Для заявки нужны авторизация и доступные условия'; return;
+  }
+  if (!/[\p{L}]/u.test(form.country) || !/^@?[A-Za-z0-9_]{1,32}$/.test(form.telegram.trim()) ||
+    !validAmount(form.amount.trim(), options.value.invoice_min, 2) || !form.description.trim() || form.description.length > 5000) {
+    submitError.value = 'Заполните страну, Telegram, сумму и описание по условиям заявки'; return;
+  }
+  submitting.value = true;
+  const epoch = getSessionScope().epoch;
+  try {
+    const id = await createInvoicePayout({ country: form.country.trim(), telegram_username: form.telegram.trim(),
+      source_amount: form.amount.trim(), description: form.description.trim() });
+    if (current(epoch)) submissionMessage.value = `Заявка №${id} принята. Статус уточняйте у менеджера.`;
+  } catch (error) {
+    if (current(epoch)) {
+      uncertain.value = isAmbiguousPayoutFailure(error);
+      submitError.value = uncertain.value ? '' : error instanceof Error ? error.message : 'Не удалось отправить заявку';
+    }
+  } finally { if (current(epoch)) submitting.value = false; }
 }
 </script>
 

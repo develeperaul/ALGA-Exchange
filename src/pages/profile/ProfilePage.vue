@@ -1,7 +1,17 @@
 <template>
   <q-page class="profile-page">
     <main class="profile-screen" aria-label="Профиль">
-      <template v-if="profileVariant === 'guest'">
+      <section v-if="profileVariant === 'restoring'" class="profile-status" role="status">
+        <h1>Загрузка профиля</h1>
+        <p>Проверяем сохранённую сессию.</p>
+      </section>
+      <section v-else-if="profileVariant === 'error'" class="profile-status" role="alert">
+        <h1>Не удалось загрузить профиль</h1>
+        <p>{{ profileError }}</p>
+        <UiButton size="mini" :disabled="retrying" @click="retryProfile">{{ retrying ? 'Загрузка...' : 'Повторить' }}</UiButton>
+        <UiButton v-if="!authStore.token" size="mini" variant="neutral" @click="goAuth">Войти</UiButton>
+      </section>
+      <template v-else-if="profileVariant === 'guest'">
         <section class="profile-auth-card" aria-label="Вход">
           <div class="profile-auth-card__title">
             <span class="profile-avatar profile-avatar--small" aria-hidden="true" />
@@ -42,14 +52,15 @@
           <span class="profile-avatar" aria-hidden="true" />
           <p>{{ profileEmail }}</p>
         </header>
+        <p v-if="profilePhone" class="profile-contact">Телефон: {{ profilePhone }}</p>
 
         <section class="profile-verify-card" aria-label="Верификация">
           <h1>
             <span class="profile-check" aria-hidden="true" />
-            Пройдите верификацию
+            {{ verificationTitle }}
           </h1>
-          <p>Для выгодных безналичных обменов</p>
-          <UiButton class="profile-verify-card__button" size="mini" @click="goKyc">
+          <p>{{ verificationText }}</p>
+          <UiButton v-if="showKycAction" class="profile-verify-card__button" size="mini" @click="goKyc">
             Верификация
           </UiButton>
         </section>
@@ -93,7 +104,7 @@ import ProfileMenuRow from 'components/profile/ProfileMenuRow.vue';
 import UiButton from 'components/ui/UiButton.vue';
 import { useAuthStore } from 'stores/auth-store';
 
-type ProfileVariant = 'guest' | 'authorized';
+type ProfileVariant = 'guest' | 'restoring' | 'error' | 'authorized';
 
 defineOptions({
   name: 'ProfilePage',
@@ -101,8 +112,22 @@ defineOptions({
 
 const router = useRouter();
 const authStore = useAuthStore();
-const profileVariant = computed<ProfileVariant>(() => (authStore.isAuthenticated ? 'authorized' : 'guest'));
-const profileEmail = computed(() => authStore.profileEmail || '—');
+const profileVariant = computed<ProfileVariant>(() => authStore.status === 'restoring' ? 'restoring'
+  : authStore.status === 'error' ? 'error' : authStore.isAuthenticated ? 'authorized' : 'guest');
+const profileEmail = computed(() => authStore.profile?.email || 'Электронная почта не указана');
+const profilePhone = computed(() => authStore.profile?.phone || '');
+const profileError = computed(() => authStore.error?.message || 'Повторите попытку.');
+const retrying = ref(false);
+const verificationTitle = computed(() => ({
+  approved: 'Личность подтверждена', pending: 'Проверка выполняется',
+  rejected: 'Проверка отклонена', unverified: 'Верификация не пройдена',
+}[authStore.verificationStatus]));
+const verificationText = computed(() => ({
+  approved: 'Ваш статус подтверждён.', pending: 'Ожидайте результата проверки.',
+  rejected: 'Проверка требует повторного прохождения.',
+  unverified: 'Для безналичных операций пройдите проверку личности.',
+}[authStore.verificationStatus]));
+const showKycAction = computed(() => authStore.verificationStatus !== 'approved' && authStore.verificationStatus !== 'pending');
 const legalOpen = ref(!authStore.isAuthenticated);
 
 function goAuth() {
@@ -115,6 +140,15 @@ function goFaq() {
 
 function goKyc() {
   void router.push('/kyc');
+}
+
+async function retryProfile() {
+  if (retrying.value) return;
+  if (!authStore.token) { goAuth(); return; }
+  retrying.value = true;
+  try { await authStore.fetchProfile(); }
+  catch { /* The store exposes the error state and retry remains available. */ }
+  finally { retrying.value = false; }
 }
 
 function logout() {
@@ -144,6 +178,15 @@ function logout() {
   color: var(--ui-text-primary);
   font-family: var(--ui-font-family);
 }
+
+.profile-status {
+  padding: 20px;
+  border-radius: var(--ui-radius-sheet);
+  background: var(--ui-surface-white);
+}
+.profile-status h1 { margin: 0; font-size: var(--ui-font-h2); }
+.profile-status p { margin: 12px 0 20px; }
+.profile-contact { margin: 10px 0 0 42px; color: var(--ui-text-muted); }
 
 .profile-auth-card,
 .profile-verify-card {

@@ -29,7 +29,8 @@
           to="/invoice"
         />
       </div>
-      <HomeRateTable class="home-screen__rate-table" :items="rateItems" />
+      <HomeRateTable class="home-screen__rate-table" :items="isMockMode ? demoRateItems : rateItems"
+        @refresh="refreshRates" />
       <HomeKycPromoCard
         v-show="authStore.verificationStatus === 'unverified'"
         class="home-screen__image-card"
@@ -50,6 +51,9 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { isMockMode } from 'src/api/config';
+import type { SharedQuote, CashRate } from 'src/api/quotes';
+import { useHomeQuotes } from 'src/composables/useHomeQuotes';
 import HomeActionCard from 'components/home/HomeActionCard.vue';
 import HomeExchangeHero from 'components/home/HomeExchangeHero.vue';
 import HomeGreetingHeader from 'components/home/HomeGreetingHeader.vue';
@@ -70,7 +74,84 @@ const showKycModal = ref(false);
 
 type HomeState = 'guest' | 'hasPhoneNoKyc' | 'hasKyc';
 
-const rateItems = [
+const { currentQuotes, currentCash, quotesStatus, cashStatus, refreshQuotes, refreshCash } = useHomeQuotes();
+// The original decimal strings and quote metadata stay on their source objects.
+// Round only the small table's presentation to two decimal places, without Number.
+function displayRate(raw: string): string {
+  const [whole = '0', fraction = ''] = raw.split('.');
+  const cents = BigInt(whole) * 100n + BigInt((fraction + '00').slice(0, 2)) +
+    ((fraction[2] || '0') >= '5' ? 1n : 0n);
+  const remainder = String(cents % 100n).padStart(2, '0').replace(/0+$/, '');
+  return `${cents / 100n}${remainder ? `,${remainder}` : ''} ₽`;
+}
+
+const methodName = (method: SharedQuote['method']) => method === 'sbp' ? 'СБП' : 'Карта';
+const quoteValue = (quote?: SharedQuote) => quote
+  ? { value: displayRate(quote.rate), raw: quote.rate, quote }
+  : { value: '—' };
+const cashValue = (rate?: CashRate) => rate
+  ? { value: displayRate(rate.attributes.rate), raw: rate.attributes.rate, rate }
+  : { value: '—' };
+
+const rateItems = computed(() => {
+  const buys = currentQuotes.value.filter(quote => quote.type === 'buy');
+  const sells = currentQuotes.value.filter(quote => quote.type === 'sell')
+    .sort((a, b) => Number(b.method === 'sbp') - Number(a.method === 'sbp'));
+  const sellOptions = sells.map(quote => ({
+    id: quote.quote_id,
+    method: methodName(quote.method),
+    value: displayRate(quote.rate),
+    raw: quote.rate,
+    quote,
+  }));
+  const primarySell = sellOptions[0];
+  const quotesEmpty = !buys.length && !sells.length;
+  const quoteRow = {
+    id: 'non-cash',
+    name: 'Безналичный',
+    buy: quoteValue(buys[0]),
+    sell: primarySell
+      ? { value: primarySell.value, raw: primarySell.raw, method: primarySell.method, options: sellOptions }
+      : { value: '—' },
+    notice: quotesStatus.value === 'loading' ? 'Загрузка…' :
+      quotesStatus.value === 'error' ? 'Ошибка курса' :
+        quotesEmpty ? 'Нет курса' : undefined,
+    status: quotesStatus.value,
+    retry: quotesStatus.value === 'error' || (quotesStatus.value === 'ready' && quotesEmpty)
+      ? 'quotes' as const : undefined,
+  };
+  const extraBuys = buys.slice(1).map(quote => ({
+    id: quote.quote_id,
+    name: `Безналичный · ${methodName(quote.method)}`,
+    buy: quoteValue(quote),
+    sell: { value: '—' },
+  }));
+  const cashRows = currentCash.value.map(rate => ({
+    id: rate.id,
+    name: 'Наличный',
+    buy: { value: '—' },
+    sell: cashValue(rate),
+  }));
+  if (!cashRows.length) cashRows.push({
+    id: 'cash',
+    name: 'Наличный',
+    buy: { value: '—' },
+    sell: { value: '—' },
+    notice: cashStatus.value === 'loading' ? 'Загрузка…' :
+      cashStatus.value === 'error' ? 'Ошибка курса' : 'Нет курса',
+    status: cashStatus.value,
+    retry: cashStatus.value === 'error' || cashStatus.value === 'ready'
+      ? 'cash' as const : undefined,
+  } as typeof cashRows[number]);
+  return [quoteRow, ...extraBuys, ...cashRows];
+});
+
+function refreshRates(source: 'quotes' | 'cash') {
+  if (source === 'quotes') void refreshQuotes();
+  else void refreshCash();
+}
+
+const demoRateItems = [
   {
     name: 'Безналичный',
     buy: {
@@ -177,7 +258,7 @@ const greetingName = computed(() => {
 }
 
 .home-screen__rate-table {
-  margin-top: 24px;
+  margin-top: 30px;
 }
 
 .home-screen__kyc-status {

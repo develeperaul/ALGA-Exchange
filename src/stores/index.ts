@@ -4,6 +4,8 @@ import { useAuthStore } from './auth-store'
 import { useKycStore } from './kyc-store'
 import { usePaymentsStore } from './payments-store'
 import { Router } from 'vue-router';
+import { isMockMode } from '@/api/config';
+import { onSessionChange } from '@/api/session';
 
 /*
  * When adding new properties to stores, you should also
@@ -32,9 +34,17 @@ export default store((/* { ssrContext } */) => {
   // pinia.use(SomePiniaPlugin)
 
   if (typeof window !== 'undefined') {
-    useAuthStore(pinia).hydrate()
-    useKycStore(pinia).hydrate()
-    usePaymentsStore(pinia).syncPayments()
+    const kyc = useKycStore(pinia);
+    const payments = usePaymentsStore(pinia);
+    onSessionChange(() => {
+      kyc.reset();
+      payments.$reset();
+    });
+    void useAuthStore(pinia).restore();
+    if (isMockMode) {
+      kyc.hydrate();
+      payments.syncPayments();
+    }
   }
 
   return pinia

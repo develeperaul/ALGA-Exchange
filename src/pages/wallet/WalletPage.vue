@@ -1,6 +1,8 @@
 <template>
   <q-page class="wallet-page">
     <main class="wallet-screen" aria-label="Кошелек">
+      <ApiTransactionForm v-if="!isMockMode" />
+      <template v-else>
       <h1 class="wallet-title">
         Безналичный обмен
       </h1>
@@ -104,9 +106,10 @@
         <img class="wallet-empty__image" :src="walletImage" alt="" aria-hidden="true">
         <p class="wallet-empty__text">Пока тут пусто</p>
       </section>
+      </template>
     </main>
 
-    <UiBottomSheet
+    <UiBottomSheet v-if="isMockMode"
       v-model="isDepositSheetOpen"
       :aria-label="sheetTitle"
       panel-class="wallet-deposit-sheet"
@@ -144,6 +147,8 @@ import walletImage from 'assets/wallet.png';
 import UiBottomSheet from 'components/ui/UiBottomSheet.vue';
 import WalletOperationRow from 'components/wallet/WalletOperationRow.vue';
 import { usePaymentsStore } from '@/stores/payments-store';
+import { isMockMode } from '@/api/config';
+import ApiTransactionForm from 'components/operations/ApiTransactionForm.vue';
 
 defineOptions({
   name: 'WalletPage',

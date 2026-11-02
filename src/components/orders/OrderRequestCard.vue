@@ -1,6 +1,7 @@
 <template>
   <article
     class="order-request-card"
+    :class="{ 'order-request-card--api': Boolean(statusText) }"
     :data-node-id="nodeId"
   >
     <span
@@ -43,6 +44,7 @@ interface OrderRequestCardProps {
   date: string;
   amount: string;
   amountTone?: 'default' | 'danger';
+  statusText?: string;
   nodeId?: string;
 }
 
@@ -56,6 +58,7 @@ defineOptions({
 });
 
 const statusLabel = computed(() => {
+  if (props.statusText) return props.statusText;
   const labels: Record<OrderRequestStatus, string> = {
     processing: 'В обработке',
     completed: 'Исполнена',
@@ -67,6 +70,24 @@ const statusLabel = computed(() => {
 </script>
 
 <style scoped lang="scss">
+.order-request-card--api {
+  height: auto !important;
+  min-height: 104px;
+  padding: 16px 20px;
+  display: grid;
+  gap: 8px;
+}
+.order-request-card--api > * {
+  position: static !important;
+  max-width: 100% !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+.order-request-card--api .order-request-card__status {
+  height: auto;
+  min-height: 24px;
+  justify-self: start;
+}
 .order-request-card {
   width: 100%;
   height: 104px;

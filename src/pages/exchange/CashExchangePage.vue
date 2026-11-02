@@ -10,6 +10,10 @@
         :options="tabOptions"
         class="cash-exchange__tabs"
       />
+      <p v-if="!isMockMode && optionsError" role="alert">{{ optionsError }}</p>
+      <p v-if="!isMockMode && submissionMessage" role="status">{{ submissionMessage }}</p>
+      <p v-if="!isMockMode && submitError" role="alert">{{ submitError }}</p>
+      <p v-if="!isMockMode && uncertain" role="alert">Результат отправки неизвестен. Не отправляйте заявку повторно; уточните её у менеджера.</p>
 
       <!-- Таб: Продать USDT -->
       <section v-if="activeTab === 'sell'" class="cash-exchange__form">
@@ -27,7 +31,7 @@
           placeholder="Введите город"
         />
 
-        <UiInput
+        <UiInput v-if="isMockMode"
           v-model="sellForm.currency"
           name="sell-currency"
           label="Валюта получения"
@@ -39,11 +43,12 @@
           name="sell-amount"
           label="Сумма продажи"
           placeholder="Введите сумму"
-          hint="от 10 000 USDT"
+          :hint="`от ${options?.cash_sell_min ?? '—'} USDT`"
           inputmode="numeric"
         />
+        <UiInput v-if="!isMockMode" v-model="sellForm.telegram" name="sell-telegram" label="Telegram-никнейм" placeholder="@username" />
 
-        <UiPromoField
+        <UiPromoField v-if="isMockMode"
           v-model="sellForm.promoCode"
           readonly
           show-check
@@ -57,7 +62,7 @@
             @click="openCalendar('sell')"
           >
             <span :class="{ 'cash-exchange__date-placeholder': !sellForm.date }">
-              {{ sellForm.date || 'Выбрать дату' }}
+              {{ sellForm.date ? dayjs(sellForm.date).format('DD MM YYYY') : 'Выбрать дату' }}
             </span>
           </button>
         </div>
@@ -65,7 +70,7 @@
         <UiSelect
           v-model="sellForm.time"
           label="Время"
-          :options="timeOptions"
+          :options="isMockMode ? timeOptions : (options?.time_slots ?? []).map(slot => ({ label: slot, value: slot }))"
           placeholder="Выберите время"
         />
 
@@ -77,8 +82,8 @@
           <span>При совершении сделки может потребоваться заключение ДКП (договора купли-продажи)</span>
         </div>
 
-        <UiButton size="large" class="cash-exchange__submit" @click="onSubmit">
-          Далее
+        <UiButton size="large" class="cash-exchange__submit" :disabled="!isMockMode && (submitting || uncertain || !options || !!submissionMessage)" @click="onSubmit">
+          {{ isMockMode ? 'Далее' : submitting ? 'Отправка…' : 'Отправить заявку' }}
         </UiButton>
       </section>
 
@@ -98,7 +103,7 @@
           placeholder="Введите город"
         />
 
-        <UiInput
+        <UiInput v-if="isMockMode"
           v-model="buyForm.currency"
           name="buy-currency"
           label="Валюта покупки"
@@ -110,11 +115,12 @@
           name="buy-amount"
           label="Сумма покупки"
           placeholder="Введите сумму"
-          hint="от 10 000 USDT"
+          :hint="`от ${options?.cash_buy_min ?? '—'} USDT`"
           inputmode="numeric"
         />
+        <UiInput v-if="!isMockMode" v-model="buyForm.telegram" name="buy-telegram" label="Telegram-никнейм" placeholder="@username" />
 
-        <UiPromoField
+        <UiPromoField v-if="isMockMode"
           v-model="buyForm.promoCode"
           readonly
           show-check
@@ -128,7 +134,7 @@
             @click="openCalendar('buy')"
           >
             <span :class="{ 'cash-exchange__date-placeholder': !buyForm.date }">
-              {{ buyForm.date || 'Выбрать дату' }}
+              {{ buyForm.date ? dayjs(buyForm.date).format('DD MM YYYY') : 'Выбрать дату' }}
             </span>
           </button>
         </div>
@@ -136,7 +142,7 @@
         <UiSelect
           v-model="buyForm.time"
           label="Время"
-          :options="timeOptions"
+          :options="isMockMode ? timeOptions : (options?.time_slots ?? []).map(slot => ({ label: slot, value: slot }))"
           placeholder="Выберите время"
         />
 
@@ -148,8 +154,8 @@
           <span>При совершении сделки может потребоваться заключение ДКП (договора купли-продажи)</span>
         </div>
 
-        <UiButton size="large" class="cash-exchange__submit" @click="onSubmit">
-          Далее
+        <UiButton size="large" class="cash-exchange__submit" :disabled="!isMockMode && (submitting || uncertain || !options || !!submissionMessage)" @click="onSubmit">
+          {{ isMockMode ? 'Далее' : submitting ? 'Отправка…' : 'Отправить заявку' }}
         </UiButton>
       </section>
     </main>
@@ -171,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue';
+import { ref, reactive, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import UiButton from 'components/ui/UiButton.vue';
 import UiCalendar from 'components/ui/UiCalendar.vue';
@@ -182,12 +188,31 @@ import UiTabs, { type UiTabOption } from 'components/ui/UiTabs.vue';
 import UiBottomSheet from 'components/ui/UiBottomSheet.vue';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
+import { isMockMode } from '@/api/config';
+import { createCashPayout, fetchPayoutOptions, isAmbiguousPayoutFailure, validAmount, type PayoutOptions } from '@/api/operations';
+import { useAuthStore } from '@/stores/auth-store';
+import { getSessionScope, isCurrentSession, onSessionChange } from '@/api/session';
 
 defineOptions({
   name: 'CashExchangePage',
 });
 
 const router = useRouter();
+const auth = useAuthStore();
+const options = ref<PayoutOptions | null>(null);
+const optionsError = ref('');
+const submitError = ref('');
+const submissionMessage = ref('');
+const submitting = ref(false);
+const uncertain = ref(false);
+let disposed = false;
+const current = (epoch: number) => !disposed && isCurrentSession(epoch);
+onMounted(async () => {
+  if (isMockMode) return;
+  const epoch = getSessionScope().epoch;
+  try { const result = await fetchPayoutOptions(); if (current(epoch)) options.value = result; }
+  catch (error) { if (current(epoch)) optionsError.value = error instanceof Error ? error.message : 'Не удалось загрузить условия'; }
+});
 const activeTab = ref('sell');
 
 const tabOptions: UiTabOption[] = [
@@ -210,6 +235,7 @@ const sellForm = reactive({
   hasPromo: false,
   date: '',
   time: '',
+  telegram: '',
 });
 
 const buyForm = reactive({
@@ -221,22 +247,34 @@ const buyForm = reactive({
   hasPromo: false,
   date: '',
   time: '',
+  telegram: '',
 });
 
 const calendarOpen = ref(false);
-const calendarValue = ref('');
+const calendarValue = ref<Dayjs | ''>('');
 const calendarTarget = ref<'sell' | 'buy'>('sell');
+function clearSensitiveState() {
+  for (const form of [sellForm, buyForm]) {
+    form.country = ''; form.city = ''; form.currency = ''; form.amount = '';
+    form.date = ''; form.time = ''; form.telegram = '';
+  }
+  calendarValue.value = ''; calendarOpen.value = false;
+  options.value = null; optionsError.value = ''; submitError.value = '';
+  submissionMessage.value = ''; submitting.value = false; uncertain.value = false;
+}
+const unsubscribe = onSessionChange(() => { if (!isMockMode) clearSensitiveState(); });
+onUnmounted(() => { disposed = true; unsubscribe(); if (!isMockMode) clearSensitiveState(); });
 
 function openCalendar(target: 'sell' | 'buy') {
   calendarTarget.value = target;
   const currentDate = target === 'sell' ? sellForm.date : buyForm.date;
-  calendarValue.value = currentDate || '';
+  calendarValue.value = currentDate ? dayjs(currentDate) : '';
   calendarOpen.value = true;
 }
 
 watch(calendarValue, (val) => {
   if (!calendarOpen.value) return;
-  const formatted = val ? dayjs(val).format('DD MM YYYY') : '';
+  const formatted = val ? dayjs(val).format('YYYY-MM-DD') : '';
   if (calendarTarget.value === 'sell') {
     sellForm.date = formatted;
   } else {
@@ -244,10 +282,36 @@ watch(calendarValue, (val) => {
   }
 });
 
-function onSubmit() {
+async function onSubmit() {
   const form = activeTab.value === 'sell' ? sellForm : buyForm;
-  console.log('Submit', activeTab.value, form);
-  void router.push('/exchange/cash/confirm');
+  if (isMockMode) { void router.push('/exchange/cash/confirm'); return; }
+  if (disposed || submitting.value || uncertain.value || submissionMessage.value) return;
+  submitError.value = '';
+  if (!auth.isAuthenticated || !options.value) {
+    submitError.value = 'Для заявки нужны авторизация и доступные условия'; return;
+  }
+  const minimum = activeTab.value === 'sell' ? options.value.cash_sell_min : options.value.cash_buy_min;
+  const date = dayjs(form.date);
+  if (!/[\p{L}]/u.test(form.country) || !/[\p{L}]/u.test(form.city) ||
+    !/^@?[A-Za-z0-9_]{1,32}$/.test(form.telegram.trim()) || !validAmount(form.amount.trim(), minimum, 2) ||
+    !form.date || !date.isValid() || !options.value.time_slots.includes(form.time)) {
+    submitError.value = 'Заполните страну, город, Telegram, сумму, дату и время по условиям заявки'; return;
+  }
+  submitting.value = true;
+  const epoch = getSessionScope().epoch;
+  try {
+    const id = await createCashPayout({
+      country: form.country.trim(), city: form.city.trim(), telegram_username: form.telegram.trim(),
+      source_amount: form.amount.trim(), direction: activeTab.value as 'buy' | 'sell',
+      appointment_date: date.format('YYYY-MM-DD'), time_slot: form.time,
+    });
+    if (current(epoch)) submissionMessage.value = `Заявка №${id} принята. Статус уточняйте у менеджера.`;
+  } catch (error) {
+    if (current(epoch)) {
+      uncertain.value = isAmbiguousPayoutFailure(error);
+      submitError.value = uncertain.value ? '' : error instanceof Error ? error.message : 'Не удалось отправить заявку';
+    }
+  } finally { if (current(epoch)) submitting.value = false; }
 }
 </script>
 

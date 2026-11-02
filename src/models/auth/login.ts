@@ -7,7 +7,7 @@ export interface LoginPayload {
 
 export interface LoginAttributes {
   token: string;
-  expires_at: string;
+  expires_at: string | null;
 }
 
 export interface LoginData {
